@@ -147,51 +147,41 @@
         Dashboard
       </a>
     @endcan
-    @can('view transactions')
-      <a data-spa href="{{ route('transactions.index') }}" class="h-nav-item {{ request()->routeIs('transactions.*') ? 'active' : '' }}">
-        <i class="h-nav-icon fa-solid fa-money-bill-transfer fa-fw"></i>
-        Transactions
-      </a>
-    @endcan
-    @can('view accounts')
-      <a data-spa href="{{ route('accounts.index') }}" class="h-nav-item {{ request()->routeIs('accounts.*') ? 'active' : '' }}">
-        <i class="h-nav-icon fa-solid fa-building-columns fa-fw"></i>
-        Accounts
-      </a>
-    @endcan
-    @can('view portfolio')
-      <a data-spa href="{{ route('portfolio.index') }}" class="h-nav-item {{ request()->routeIs('portfolio.*') ? 'active' : '' }}">
-        <i class="h-nav-icon fa-solid fa-chart-line fa-fw"></i>
-        Portfolio
-      </a>
-    @endcan
+    <a href="#" class="h-nav-item" onclick="HToast.info('Coming soon!');return false;">
+      <i class="h-nav-icon fa-solid fa-money-bill-transfer fa-fw"></i>
+      Transactions
+      <span class="h-nav-badge">Soon</span>
+    </a>
+    <a href="#" class="h-nav-item" onclick="HToast.info('Coming soon!');return false;">
+      <i class="h-nav-icon fa-solid fa-building-columns fa-fw"></i>
+      Accounts
+    </a>
+    <a href="#" class="h-nav-item" onclick="HToast.info('Coming soon!');return false;">
+      <i class="h-nav-icon fa-solid fa-chart-line fa-fw"></i>
+      Portfolio
+    </a>
 
     <div class="h-nav-sec">Market</div>
-    @can('view portfolio')
-    <a data-spa href="{{ route('portfolio.index') }}" class="h-nav-item {{ request()->routeIs('portfolio.*') ? 'active' : '' }}">
+    <a href="#" class="h-nav-item" onclick="HToast.info('Coming soon!');return false;">
       <i class="h-nav-icon fa-solid fa-clock fa-fw"></i>
       IPO Tracker
-      <span class="h-nav-badge teal">Live</span>
+      <span class="h-nav-badge teal">3</span>
     </a>
-    <a data-spa href="{{ route('portfolio.index') }}#gold" class="h-nav-item {{ request()->routeIs('portfolio.*') ? 'active' : '' }}">
+    <a href="#" class="h-nav-item" onclick="HToast.info('Coming soon!');return false;">
       <i class="h-nav-icon fa-solid fa-coins fa-fw"></i>
       Gold & Forex
     </a>
-    @endcan
 
     <div class="h-nav-sec">Intelligence</div>
-    @can('view suggestions')
-    <a data-spa href="{{ route('suggestions.index') }}" class="h-nav-item {{ request()->routeIs('suggestions.*') ? 'active' : '' }}">
+    <a href="#" class="h-nav-item" onclick="HToast.info('Coming soon!');return false;">
       <i class="h-nav-icon fa-solid fa-lightbulb fa-fw"></i>
       Suggestions
+      <span class="h-nav-badge">2</span>
     </a>
-    @endcan
-    @can('view settings')
-    <a data-spa href="{{ route('settings.index', ['tab' => 'settings-notifications']) }}" class="h-nav-item {{ request()->routeIs('settings.index') && request()->query('tab') === 'settings-notifications' ? 'active' : '' }}">
+    <a href="#" class="h-nav-item" onclick="HToast.info('Coming soon!');return false;">
       <i class="h-nav-icon fa-brands fa-telegram fa-fw"></i>
       Telegram Bot
     </a>
-    @endcan
 
     <div class="h-nav-sec">System</div>
     @can('view docs')

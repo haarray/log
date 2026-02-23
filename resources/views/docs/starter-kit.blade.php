@@ -118,22 +118,6 @@ document.addEventListener('hspa:afterSwap', (event) =&gt; {
       </section>
 
       <section class="doc-block">
-        <h3>Haarray Log Finance Stack</h3>
-        <p>
-          The <code>log</code> product extends this starter with production finance modules:
-          <code>/accounts</code>, <code>/transactions</code>, <code>/portfolio</code>, and <code>/suggestions</code>.
-        </p>
-        <ol>
-          <li>Track account balances per bank/wallet/cash account.</li>
-          <li>Log debit/credit transactions with category + account linkage.</li>
-          <li>Track IPO opportunities and your IPO/gold positions.</li>
-          <li>Run suggestion generation via <code>php artisan log:suggestions:run --notify</code>.</li>
-          <li>Use Telegram webhook flow for bot logging with <code>/link</code>, <code>/log</code>, <code>/income</code>, and <code>/balance</code>.</li>
-          <li>Mirror core updates using <code>php artisan log:core:sync</code> (microservice-style workflow).</li>
-        </ol>
-      </section>
-
-      <section class="doc-block">
         <h3>Tutorial Packs</h3>
         <p>Use these docs as implementation blueprints when building your own modules.</p>
         <ul>

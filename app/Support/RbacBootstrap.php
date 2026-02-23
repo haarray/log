@@ -19,14 +19,6 @@ class RbacBootstrap
         return [
             'view dashboard',
             'manage dashboard',
-            'view accounts',
-            'manage accounts',
-            'view transactions',
-            'manage transactions',
-            'view portfolio',
-            'manage portfolio',
-            'view suggestions',
-            'manage suggestions',
             'view docs',
             'manage docs',
             'view settings',
@@ -57,14 +49,6 @@ class RbacBootstrap
             'manager' => [
                 'view dashboard',
                 'manage dashboard',
-                'view accounts',
-                'manage accounts',
-                'view transactions',
-                'manage transactions',
-                'view portfolio',
-                'manage portfolio',
-                'view suggestions',
-                'manage suggestions',
                 'view docs',
                 'manage docs',
                 'view settings',
@@ -79,16 +63,9 @@ class RbacBootstrap
                 'view exports',
                 'manage exports',
             ],
-            // Keep signup users operational but safe.
+            // Keep signup users minimal: dashboard + notifications.
             'user' => [
                 'view dashboard',
-                'view accounts',
-                'manage accounts',
-                'view transactions',
-                'manage transactions',
-                'view portfolio',
-                'manage portfolio',
-                'view suggestions',
                 'view notifications',
             ],
             'test-role' => [
@@ -165,10 +142,6 @@ class RbacBootstrap
                 'browser_notifications_enabled' => true,
             ];
 
-            if ($record['role'] === 'super-admin' && !$this->isRootEmail($email)) {
-                $record['role'] = 'admin';
-            }
-
             /** @var User|null $user */
             $user = User::query()->where('email', $email)->first();
             if ($user) {
@@ -194,14 +167,9 @@ class RbacBootstrap
 
         $roleMap = $this->roleMap();
         $targetRole = trim((string) ($user->role ?: ($fallbackRole ?: $this->signupRole())));
-        $userEmail = strtolower(trim((string) $user->email));
 
         if ($targetRole === '' || !array_key_exists($targetRole, $roleMap)) {
             $targetRole = $this->signupRole();
-        }
-
-        if ($targetRole === 'super-admin' && !$this->isRootEmail($userEmail)) {
-            $targetRole = 'admin';
         }
 
         if (!Role::query()->where('name', $targetRole)->exists()) {
@@ -237,20 +205,5 @@ class RbacBootstrap
         } catch (Throwable) {
             return false;
         }
-    }
-
-    private function rootAdminEmail(): string
-    {
-        return strtolower(trim((string) config('haarray.root_admin_email', 'prateekbhujelpb@gmail.com')));
-    }
-
-    private function isRootEmail(string $email): bool
-    {
-        $email = strtolower(trim($email));
-        if ($email === '') {
-            return false;
-        }
-
-        return $email === $this->rootAdminEmail();
     }
 }
