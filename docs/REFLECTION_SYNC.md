@@ -78,6 +78,12 @@ Wrapper script:
 ./scripts/reflect-sync.sh log --dry-run
 ```
 
+One-command push + reflect (core + target):
+
+```bash
+./scripts/push-and-reflect.sh log
+```
+
 ## Safety
 
 - `--dry-run` previews without write.
