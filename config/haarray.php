@@ -106,6 +106,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Shared Hosting Inline Automation (Queue/Cron Fallback)
+    |--------------------------------------------------------------------------
+    */
+    'inline_automation' => [
+        'enabled' => filter_var(env('HAARRAY_INLINE_AUTOMATION', true), FILTER_VALIDATE_BOOL),
+        'suggestions_every_seconds' => max(60, (int) env('HAARRAY_INLINE_SUGGESTIONS_EVERY_SECONDS', 900)),
+        'market_refresh_every_seconds' => max(300, (int) env('HAARRAY_INLINE_MARKET_REFRESH_EVERY_SECONDS', 3600)),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Global Search Registry
     |--------------------------------------------------------------------------
     | Models can be overridden at runtime via app_settings.search.registry_json.

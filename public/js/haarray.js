@@ -1340,16 +1340,32 @@
   function updateClock() {
     const $clock = $('#h-live-clock,#h-clock');
     if (!$clock.length) return;
+    const userLocale = String(document.body?.dataset?.uiLocale || 'en').toLowerCase() === 'ne' ? 'ne' : 'en';
+    const now = new Date();
+    if (window.HNepaliDate && typeof window.HNepaliDate.dual === 'function') {
+      $clock.text(window.HNepaliDate.dual(now, { locale: userLocale, withTime: true }));
+      return;
+    }
 
-    $clock.text(
-      new Date().toLocaleString('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    );
+    const english = now.toLocaleString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Asia/Kathmandu',
+    });
+    const nepali = now.toLocaleString('ne-NP', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'Asia/Kathmandu',
+    });
+
+    $clock.text(userLocale === 'ne' ? (nepali + ' | ' + english) : (english + ' | ' + nepali));
   }
 
   /* ── AJAX BASE CONFIG ─────────────────────────────────── */
@@ -1370,7 +1386,8 @@
   const HUtils = {
     formatNPR(numberValue) {
       const parsed = typeof numberValue === 'number' ? numberValue : Number(numberValue) || 0;
-      return 'रू ' + parsed.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+      const userLocale = String(document.body?.dataset?.uiLocale || 'en').toLowerCase() === 'ne' ? 'ne-NP' : 'en-IN';
+      return 'रू ' + parsed.toLocaleString(userLocale, { minimumFractionDigits: 2 });
     },
 
     htmlToDoc(html) {
@@ -1813,6 +1830,7 @@
         'themeColor',
         'notificationReadAllUrl',
         'notificationSoundUrl',
+        'uiLocale',
         'hotReloadStreamUrl',
       ];
 

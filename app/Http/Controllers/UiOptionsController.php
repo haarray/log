@@ -9,6 +9,7 @@ use App\Support\HealthCheckService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +25,29 @@ use Yajra\DataTables\Facades\DataTables;
 
 class UiOptionsController extends Controller
 {
+    public function setLocale(Request $request): RedirectResponse|JsonResponse
+    {
+        $validated = $request->validate([
+            'locale' => ['required', 'string', 'in:en,ne'],
+        ]);
+
+        $locale = strtolower((string) $validated['locale']);
+        $request->session()->put('haarray.locale', $locale);
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'ok' => true,
+                'locale' => $locale,
+            ]);
+        }
+
+        $message = $locale === 'ne'
+            ? 'नेपाली भाषा मोड सक्रिय भयो।'
+            : 'English language mode enabled.';
+
+        return back()->with('success', $message);
+    }
+
     public function leads(Request $request): JsonResponse
     {
         $search = trim((string) $request->get('q', ''));
@@ -96,7 +120,7 @@ class UiOptionsController extends Controller
 
                 return !empty($channels) ? implode(', ', $channels) : 'None';
             })
-            ->editColumn('created_at', fn (User $user) => optional($user->created_at)->format('Y-m-d'))
+            ->editColumn('created_at', fn (User $user) => optional($user->created_at)?->toIso8601String() ?: '')
             ->addColumn('actions', function (User $user) use ($request) {
                 if (!$request->user() || !$request->user()->can('manage users')) {
                     return '<span class="h-muted">View only</span>';
@@ -204,7 +228,7 @@ class UiOptionsController extends Controller
             ->addColumn('status', function (UserActivity $activity) {
                 return (string) data_get($activity->meta, 'status', '-');
             })
-            ->editColumn('created_at', fn (UserActivity $activity) => optional($activity->created_at)->format('Y-m-d H:i:s'))
+            ->editColumn('created_at', fn (UserActivity $activity) => optional($activity->created_at)?->toIso8601String() ?: '')
             ->toJson();
     }
 

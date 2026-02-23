@@ -73,8 +73,21 @@
           If JavaScript fails, routes and forms still work with server rendering.
         </p>
         <div class="h-note" style="margin-top:10px;">
-          Key modules: <code>HSPA</code>, <code>HSelect</code>, <code>HEditor</code>, <code>HConfirm</code>, <code>HIcons</code>, <code>HSvgPie</code>.
+          Key modules: <code>HSPA</code>, <code>HSelect</code>, <code>HEditor</code>, <code>HConfirm</code>, <code>HIcons</code>, <code>HSvgPie</code>, <code>HNepaliDate</code>.
         </div>
+      </section>
+
+      <section class="doc-block">
+        <h3>Locale + Dual Date</h3>
+        <p>
+          Use the topbar <code>EN/ने</code> toggle (or auth page toggle) to switch UI language. Date surfaces can display
+          dual calendar format: <code>AD | BS</code>.
+        </p>
+        <pre><code>// JavaScript
+window.HNepaliDate.dual(new Date(), { locale: 'ne', withTime: true });
+
+// PHP
+\App\Support\UiDate::dual(now(), true, app()->getLocale());</code></pre>
       </section>
 
       <section class="doc-block">

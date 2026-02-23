@@ -352,6 +352,16 @@ body.h-sidebar-compact .h-user-card .h-user-role {
   cursor:pointer; transition:all .15s; color:var(--t2); flex-shrink:0;
 }
 .h-icon-btn:hover { background:var(--bg3); color:var(--t1); border-color:var(--bd2); }
+.h-locale-form {
+  margin: 0;
+}
+.h-locale-pill {
+  font-family: var(--fm);
+  font-size: 10px;
+  letter-spacing: .8px;
+  font-weight: 700;
+  line-height: 1;
+}
 .h-notif-toggle { position:relative; }
 .h-notif-dot {
   position:absolute; top:7px; right:7px; width:7px; height:7px; border-radius:50%;

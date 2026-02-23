@@ -26,6 +26,7 @@ Route::get('/auth/facebook/callback', [AuthController::class, 'facebookCallback'
 Route::get('/2fa', [AuthController::class, 'showTwoFactor'])->name('2fa.form');
 Route::post('/2fa/verify', [AuthController::class, 'verifyTwoFactor'])->name('2fa.verify');
 Route::post('/2fa/resend', [AuthController::class, 'resendTwoFactor'])->name('2fa.resend');
+Route::post('/ui/locale', [UiOptionsController::class, 'setLocale'])->name('ui.locale.set');
 Route::post('/telegram/webhook', [TelegramWebhookController::class, 'handle'])
     ->withoutMiddleware([ValidateCsrfToken::class])
     ->name('telegram.webhook');
@@ -71,6 +72,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/portfolio/ipos', [PortfolioController::class, 'storeIpo'])
         ->middleware('permission:manage portfolio')
         ->name('portfolio.ipos.store');
+
+    Route::post('/portfolio/sync-market', [PortfolioController::class, 'syncMarket'])
+        ->middleware('permission:manage portfolio')
+        ->name('portfolio.sync-market');
 
     Route::post('/portfolio/positions', [PortfolioController::class, 'storeIpoPosition'])
         ->middleware('permission:manage portfolio')

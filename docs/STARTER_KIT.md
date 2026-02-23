@@ -14,6 +14,8 @@ This starter kit is a Laravel-first admin scaffold with progressive SPA behavior
 - Dedicated Settings pages: App & Branding, Users, Media Library, Roles & Access
 - Notification tray (in-app) with mark-read and mark-all
 - Global search modal and debug tray
+- EN/NE locale toggle with Nepali-friendly auth pages
+- Dual-date support (AD + BS) for live clock and table date columns
 
 ## 2) Core routes
 
@@ -137,3 +139,9 @@ php artisan db:seed
 php artisan haarray:permissions:sync --seed-admins
 php artisan haarray:health:check
 ```
+
+## 10) Locale + Nepali Date
+
+- `POST /ui/locale` switches UI language (`en` or `ne`) and persists in session.
+- Default locale can be saved from Settings Branding (`ui.locale`).
+- Clock and DataTable date columns render in dual format (`AD | BS`) using `HNepaliDate`.

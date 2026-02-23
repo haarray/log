@@ -1735,16 +1735,32 @@
   function updateClock() {
     const $clock = $('#h-live-clock,#h-clock');
     if (!$clock.length) return;
+    const userLocale = String(document.body?.dataset?.uiLocale || 'en').toLowerCase() === 'ne' ? 'ne' : 'en';
+    const now = new Date();
+    if (window.HNepaliDate && typeof window.HNepaliDate.dual === 'function') {
+      $clock.text(window.HNepaliDate.dual(now, { locale: userLocale, withTime: true }));
+      return;
+    }
 
-    $clock.text(
-      new Date().toLocaleString('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    );
+    const english = now.toLocaleString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Asia/Kathmandu',
+    });
+    const nepali = now.toLocaleString('ne-NP', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'Asia/Kathmandu',
+    });
+
+    $clock.text(userLocale === 'ne' ? (nepali + ' | ' + english) : (english + ' | ' + nepali));
   }
 
   /* ── AJAX BASE CONFIG ─────────────────────────────────── */
@@ -1765,7 +1781,8 @@
   const HUtils = {
     formatNPR(numberValue) {
       const parsed = typeof numberValue === 'number' ? numberValue : Number(numberValue) || 0;
-      return 'रू ' + parsed.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+      const userLocale = String(document.body?.dataset?.uiLocale || 'en').toLowerCase() === 'ne' ? 'ne-NP' : 'en-IN';
+      return 'रू ' + parsed.toLocaleString(userLocale, { minimumFractionDigits: 2 });
     },
 
     htmlToDoc(html) {
@@ -2214,6 +2231,7 @@
         'themeColor',
         'notificationReadAllUrl',
         'notificationSoundUrl',
+        'uiLocale',
         'hotReloadStreamUrl',
         'elfinderUiCssUrl',
         'elfinderUiJsUrl',
@@ -3011,6 +3029,8 @@
       if (!$table || !$table.length) return;
 
       const tableEl = $table[0];
+      const locale = this._locale();
+      const isNepali = locale === 'ne';
       const endpoint = String($table.data('endpoint') || '').trim();
       const columns = this._columns($table);
       const pageLength = Number($table.data('pageLength') || 10);
@@ -3058,12 +3078,18 @@
         order: [[Number.isFinite(orderCol) ? Math.max(0, orderCol) : 0, orderDir]],
         language: {
           search: '',
-          searchPlaceholder: 'Search...',
-          lengthMenu: 'Show _MENU_ rows',
+          searchPlaceholder: isNepali ? 'खोज्नुहोस्...' : 'Search...',
+          lengthMenu: isNepali ? '_MENU_ पङ्क्ति देखाउनुहोस्' : 'Show _MENU_ rows',
           emptyTable: emptyText,
           zeroRecords: emptyText,
-          loadingRecords: 'Loading...',
-          processing: 'Loading...',
+          loadingRecords: isNepali ? 'लोड हुँदैछ...' : 'Loading...',
+          processing: isNepali ? 'लोड हुँदैछ...' : 'Loading...',
+          info: isNepali ? '_TOTAL_ मध्ये _START_ देखि _END_ प्रविष्टि' : 'Showing _START_ to _END_ of _TOTAL_ entries',
+          infoEmpty: isNepali ? '० प्रविष्टि' : '0 entries',
+          paginate: {
+            previous: isNepali ? 'अघिल्लो' : 'Previous',
+            next: isNepali ? 'अर्को' : 'Next',
+          },
         },
         initComplete: function () {
           const $container = $(this.api().table().container());
@@ -3128,6 +3154,7 @@
 
     _columns($table) {
       const columns = [];
+      const self = this;
 
       $table.find('thead th[data-col]').each((_, th) => {
         const key = String($(th).data('col') || '').trim();
@@ -3135,19 +3162,88 @@
         const className = String(th.className || '').trim();
         const rawOrderable = String($(th).data('orderable') ?? '').trim().toLowerCase();
         const rawSearchable = String($(th).data('searchable') ?? '').trim().toLowerCase();
+        const rawDate = String($(th).data('date') ?? '').trim().toLowerCase();
         const orderable = rawOrderable === '' ? true : !['false', '0', 'no'].includes(rawOrderable);
         const searchable = rawSearchable === '' ? true : !['false', '0', 'no'].includes(rawSearchable);
-        columns.push({
+        const isDateOnly = rawDate === 'date'
+          || (rawDate === '' && String(key).toLowerCase().endsWith('_date'));
+        const isDateColumn = rawDate === ''
+          ? self._looksLikeDateColumn(key)
+          : ['1', 'true', 'yes', 'date', 'datetime'].includes(rawDate);
+
+        const column = {
           data: key,
           name: key,
           className,
           orderable,
           searchable,
           defaultContent: '<span class="h-cell-empty">Empty</span>',
-        });
+        };
+
+        if (isDateColumn) {
+          column.render = function (value, type) {
+            return self._renderDateCell(value, type, !isDateOnly);
+          };
+        }
+
+        columns.push(column);
       });
 
       return columns;
+    },
+
+    _locale() {
+      return String(document.body?.dataset?.uiLocale || 'en').toLowerCase() === 'ne' ? 'ne' : 'en';
+    },
+
+    _looksLikeDateColumn(key) {
+      const normalized = String(key || '').toLowerCase();
+      if (!normalized) return false;
+      return normalized.endsWith('_at')
+        || normalized.includes('datetime')
+        || normalized.includes('date')
+        || normalized.includes('time');
+    },
+
+    _renderDateCell(value, type, withTime = true) {
+      const raw = String(value ?? '').trim();
+      if (!raw) {
+        return type === 'display' ? '<span class="h-cell-empty">Empty</span>' : '';
+      }
+
+      if (type === 'sort' || type === 'type') {
+        const ts = Date.parse(raw);
+        return Number.isNaN(ts) ? raw : String(ts);
+      }
+
+      const locale = this._locale();
+      if (window.HNepaliDate && typeof window.HNepaliDate.dual === 'function') {
+        return this._escape(window.HNepaliDate.dual(raw, { locale, withTime }));
+      }
+
+      const parsed = new Date(raw);
+      if (!Number.isNaN(parsed.getTime())) {
+        if (!withTime) {
+          return this._escape(parsed.toLocaleDateString(locale === 'ne' ? 'ne-NP' : 'en-US', {
+            timeZone: 'Asia/Kathmandu',
+          }));
+        }
+
+        return this._escape(parsed.toLocaleString(locale === 'ne' ? 'ne-NP' : 'en-US', {
+          timeZone: 'Asia/Kathmandu',
+        }));
+      }
+
+      return this._escape(raw);
+    },
+
+    _escape(input) {
+      return String(input ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
     },
 
     _parseLengthMenu(raw) {
