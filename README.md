@@ -106,9 +106,13 @@ php artisan log:suggestions:run
 # Generate + push high-priority alerts
 php artisan log:suggestions:run --notify
 
-# Mirror selected changes from core into this repo
+# Mirror shared core layer into this repo
 php artisan log:core:sync --dry-run
 php artisan log:core:sync
+
+# Optional legacy full mirror mode
+php artisan log:core:sync --full --dry-run
+php artisan log:core:sync --full
 ```
 
 ## Core -> Log sync workflow
@@ -121,7 +125,7 @@ Configure source path in `.env`:
 LOG_CORE_SOURCE_PATH=../harray-core
 ```
 
-Then run:
+Then run shared reflection:
 
 ```bash
 php artisan log:core:sync --dry-run
@@ -135,7 +139,11 @@ Or helper script:
 ./scripts/sync-core.sh
 ```
 
-Sync excludes:
+Shared reflection uses `harray-core/config/reflection.php` + local guard file `.haarray-reflection.php` so app-specific domain code stays segregated.
+
+Use full mirror only when intentionally re-baselining from core (`--full`).
+
+Full mirror excludes:
 
 - `.git`
 - `.env`

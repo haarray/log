@@ -193,7 +193,7 @@ Artisan::command('log:suggestions:run {--user-id=* : Limit to specific user IDs}
     return self::SUCCESS;
 })->purpose('Generate ML suggestions and optionally notify users');
 
-Artisan::command('log:core:sync {--source= : Path to source core project} {--dry-run : Preview rsync actions only}', function () {
+Artisan::command('log:core:sync {--source= : Path to source core project} {--profile=log : Target profile key from source reflection config} {--dry-run : Preview rsync actions only} {--full : Run full repository mirror instead of shared-path reflection}', function () {
     $source = trim((string) ($this->option('source') ?: env('LOG_CORE_SOURCE_PATH', base_path('../harray-core'))));
     if ($source === '') {
         $this->error('Source path is empty.');
@@ -208,43 +208,183 @@ Artisan::command('log:core:sync {--source= : Path to source core project} {--dry
 
     $target = rtrim(base_path(), '/');
     $dryRun = (bool) $this->option('dry-run');
+    $runFull = (bool) $this->option('full');
 
-    $parts = [
-        'rsync',
-        '-a',
-        '--delete',
-        '--exclude=.git',
-        '--exclude=.env',
-        '--exclude=vendor',
-        '--exclude=node_modules',
-        '--exclude=storage',
-        '--exclude=public/uploads',
-        $dryRun ? '--dry-run' : '',
-        escapeshellarg($source . '/'),
-        escapeshellarg($target . '/'),
-    ];
+    if ($runFull) {
+        $parts = [
+            'rsync',
+            '-a',
+            '--delete',
+            '--exclude=.git',
+            '--exclude=.env',
+            '--exclude=vendor',
+            '--exclude=node_modules',
+            '--exclude=storage',
+            '--exclude=public/uploads',
+            $dryRun ? '--dry-run' : '',
+            escapeshellarg($source . '/'),
+            escapeshellarg($target . '/'),
+        ];
 
-    $command = trim(implode(' ', array_filter($parts, fn ($part) => $part !== '')));
-    $this->line('Running: ' . $command);
+        $command = trim(implode(' ', array_filter($parts, fn ($part) => $part !== '')));
+        $this->line('Running full mirror: ' . $command);
 
-    $process = Process::fromShellCommandline($command);
-    $process->setTimeout(240);
-    $process->run();
+        $process = Process::fromShellCommandline($command);
+        $process->setTimeout(240);
+        $process->run();
 
-    if (!$process->isSuccessful()) {
-        $this->error('Sync failed.');
-        $this->line(trim($process->getErrorOutput() ?: $process->getOutput()));
+        if (!$process->isSuccessful()) {
+            $this->error('Sync failed.');
+            $this->line(trim($process->getErrorOutput() ?: $process->getOutput()));
+            return self::FAILURE;
+        }
+
+        $output = trim($process->getOutput());
+        if ($output !== '') {
+            $this->line($output);
+        }
+
+        $this->info($dryRun ? 'Dry-run completed (full mirror).' : 'Core sync completed (full mirror).');
+        return self::SUCCESS;
+    }
+
+    $profile = trim((string) $this->option('profile')) ?: 'log';
+    $reflectionConfigPath = $source . '/config/reflection.php';
+    if (!is_file($reflectionConfigPath)) {
+        $this->error("Source reflection config not found: {$reflectionConfigPath}");
+        $this->line('Use --full if you want legacy full mirror mode.');
         return self::FAILURE;
     }
 
-    $output = trim($process->getOutput());
-    if ($output !== '') {
-        $this->line($output);
+    $reflection = require $reflectionConfigPath;
+    if (!is_array($reflection)) {
+        $this->error('Invalid source reflection config.');
+        return self::FAILURE;
     }
 
-    $this->info($dryRun ? 'Dry-run completed.' : 'Core sync completed.');
+    $globalShared = array_values(array_unique(array_filter(array_map(
+        fn ($path) => trim((string) $path, '/'),
+        (array) ($reflection['shared_paths'] ?? [])
+    ), fn ($path) => $path !== '')));
+
+    $targetProfiles = is_array($reflection['targets'] ?? null) ? $reflection['targets'] : [];
+    $targetProfile = is_array($targetProfiles[$profile] ?? null) ? $targetProfiles[$profile] : [];
+
+    $extraShared = array_values(array_unique(array_filter(array_map(
+        fn ($path) => trim((string) $path, '/'),
+        (array) ($targetProfile['extra_shared_paths'] ?? [])
+    ), fn ($path) => $path !== '')));
+
+    $excludePaths = array_values(array_unique(array_filter(array_map(
+        fn ($path) => trim((string) $path, '/'),
+        (array) ($targetProfile['exclude_paths'] ?? [])
+    ), fn ($path) => $path !== '')));
+
+    $localConfigFile = trim((string) ($targetProfile['local_config_file'] ?? '.haarray-reflection.php')) ?: '.haarray-reflection.php';
+    $localConfigPath = $target . '/' . ltrim($localConfigFile, '/');
+    if (is_file($localConfigPath)) {
+        $localConfig = require $localConfigPath;
+        if (is_array($localConfig)) {
+            $localExtra = array_values(array_unique(array_filter(array_map(
+                fn ($path) => trim((string) $path, '/'),
+                (array) ($localConfig['extra_shared_paths'] ?? [])
+            ), fn ($path) => $path !== '')));
+            $localExclude = array_values(array_unique(array_filter(array_map(
+                fn ($path) => trim((string) $path, '/'),
+                (array) ($localConfig['exclude_paths'] ?? [])
+            ), fn ($path) => $path !== '')));
+
+            $extraShared = array_values(array_unique(array_merge($extraShared, $localExtra)));
+            $excludePaths = array_values(array_unique(array_merge($excludePaths, $localExclude)));
+        }
+    }
+
+    $sharedPaths = array_values(array_unique(array_merge($globalShared, $extraShared)));
+    if (!empty($excludePaths)) {
+        $excludeMap = array_fill_keys($excludePaths, true);
+        $sharedPaths = array_values(array_filter($sharedPaths, fn ($path) => !isset($excludeMap[$path])));
+    }
+
+    if (empty($sharedPaths)) {
+        $this->warn('No shared paths resolved for reflection sync.');
+        return self::SUCCESS;
+    }
+
+    $synced = 0;
+    $removed = 0;
+    $skipped = 0;
+    foreach ($sharedPaths as $relativePath) {
+        $sourceAbsolute = $source . '/' . $relativePath;
+        $targetAbsolute = $target . '/' . $relativePath;
+
+        if (is_dir($sourceAbsolute)) {
+            File::ensureDirectoryExists($targetAbsolute);
+            $command = ['rsync', '-a', '--delete'];
+            if ($dryRun) {
+                $command[] = '--dry-run';
+            }
+            $command[] = rtrim($sourceAbsolute, '/') . '/';
+            $command[] = rtrim($targetAbsolute, '/') . '/';
+
+            $process = new Process($command, $target);
+            $process->setTimeout(240);
+            $process->run();
+            if (!$process->isSuccessful()) {
+                $this->error("Failed syncing directory: {$relativePath}");
+                $this->line(trim($process->getErrorOutput() ?: $process->getOutput()));
+                return self::FAILURE;
+            }
+
+            $this->line('[SYNC DIR] ' . $relativePath);
+            $synced++;
+            continue;
+        }
+
+        if (is_file($sourceAbsolute)) {
+            File::ensureDirectoryExists(dirname($targetAbsolute));
+            $command = ['rsync', '-a'];
+            if ($dryRun) {
+                $command[] = '--dry-run';
+            }
+            $command[] = $sourceAbsolute;
+            $command[] = $targetAbsolute;
+
+            $process = new Process($command, $target);
+            $process->setTimeout(240);
+            $process->run();
+            if (!$process->isSuccessful()) {
+                $this->error("Failed syncing file: {$relativePath}");
+                $this->line(trim($process->getErrorOutput() ?: $process->getOutput()));
+                return self::FAILURE;
+            }
+
+            $this->line('[SYNC FILE] ' . $relativePath);
+            $synced++;
+            continue;
+        }
+
+        if (is_dir($targetAbsolute) || is_file($targetAbsolute)) {
+            if ($dryRun) {
+                $this->line('[REMOVE] ' . $relativePath . ' (dry-run)');
+            } else {
+                if (is_dir($targetAbsolute)) {
+                    File::deleteDirectory($targetAbsolute);
+                } else {
+                    File::delete($targetAbsolute);
+                }
+                $this->line('[REMOVE] ' . $relativePath);
+            }
+            $removed++;
+            continue;
+        }
+
+        $this->line('[SKIP] ' . $relativePath . ' (missing in source/target)');
+        $skipped++;
+    }
+
+    $this->info("Core shared reflection completed. Synced {$synced}, removed {$removed}, skipped {$skipped}.");
     return self::SUCCESS;
-})->purpose('Mirror selected changes from core into this log app (microservice-style workflow)');
+})->purpose('Sync core shared layer into LOG app (segregated reflection mode)');
 
 Schedule::command('log:suggestions:run --notify')
     ->hourly()
