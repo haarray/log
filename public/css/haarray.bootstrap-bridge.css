@@ -1,0 +1,180 @@
+/* Haarray x Bootstrap Bridge
+   Allows Bootstrap + Font Awesome usage while keeping Haarray visual language. */
+
+:root,
+[data-theme='dark'],
+[data-theme='light'] {
+  --bs-primary: var(--gold);
+  --bs-secondary: #7f8aa3;
+  --bs-success: var(--green);
+  --bs-danger: var(--red);
+  --bs-warning: var(--gold);
+  --bs-info: var(--teal);
+  --bs-light: var(--bg2);
+  --bs-dark: var(--bg0);
+  --bs-border-color: var(--bd);
+  --bs-body-bg: var(--bg0);
+  --bs-body-color: var(--t1);
+  --bs-link-color: var(--gold);
+  --bs-link-hover-color: var(--gold-dk);
+  --bs-emphasis-color: var(--t1);
+  --bs-secondary-color: var(--t2);
+  --bs-tertiary-bg: var(--bg3);
+}
+
+.btn {
+  border-radius: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.btn-primary {
+  border-color: var(--gold-dk);
+  background: linear-gradient(135deg, var(--gold), var(--gold-dk));
+  color: #111;
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+  color: #111;
+  border-color: var(--gold-dk);
+  background: linear-gradient(135deg, var(--gold), var(--gold-dk));
+  filter: brightness(0.97);
+}
+
+.btn-outline-secondary {
+  color: var(--t2);
+  border-color: var(--bd2);
+}
+
+.btn-outline-secondary:hover {
+  background: var(--bg3);
+  border-color: var(--bd2);
+  color: var(--t1);
+}
+
+.form-control,
+.form-select,
+.form-check-input,
+.input-group-text {
+  background-color: var(--bg0);
+  border-color: var(--bd);
+  color: var(--t1);
+  border-radius: 10px;
+}
+
+[data-theme='light'] .form-control,
+[data-theme='light'] .form-select,
+[data-theme='light'] .input-group-text {
+  background-color: var(--bg3);
+}
+
+.form-control::placeholder {
+  color: var(--t3);
+}
+
+.form-control:focus,
+.form-select:focus,
+.form-check-input:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 0.25rem rgba(245, 166, 35, 0.15);
+}
+
+.form-check-input:checked {
+  background-color: var(--gold);
+  border-color: var(--gold);
+}
+
+.card,
+.modal-content,
+.dropdown-menu,
+.offcanvas,
+.accordion-item,
+.list-group-item,
+.popover {
+  background: var(--bg2);
+  color: var(--t1);
+  border-color: var(--bd);
+}
+
+.card-header,
+.modal-header,
+.modal-footer,
+.offcanvas-header,
+.accordion-button,
+.list-group-item {
+  border-color: var(--bd);
+}
+
+.table {
+  --bs-table-bg: var(--bg2);
+  --bs-table-color: var(--t1);
+  --bs-table-border-color: var(--bd);
+  --bs-table-hover-bg: var(--bg3);
+  --bs-table-hover-color: var(--t1);
+}
+
+.table thead th {
+  color: var(--t3);
+  font-family: var(--fm);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.nav-tabs {
+  border-bottom-color: var(--bd);
+}
+
+.nav-tabs .nav-link {
+  color: var(--t2);
+  border-color: transparent;
+}
+
+.nav-tabs .nav-link:hover,
+.nav-tabs .nav-link.active {
+  color: var(--gold);
+  border-color: var(--bd) var(--bd) var(--bg2);
+  background: var(--bg2);
+}
+
+.alert {
+  border-radius: 10px;
+  border-width: 1px;
+}
+
+.alert-info {
+  background: rgba(45, 212, 191, 0.08);
+  border-color: rgba(45, 212, 191, 0.2);
+  color: var(--teal);
+}
+
+.alert-warning {
+  background: rgba(245, 166, 35, 0.1);
+  border-color: rgba(245, 166, 35, 0.2);
+  color: var(--gold);
+}
+
+.alert-danger {
+  background: rgba(248, 113, 113, 0.1);
+  border-color: rgba(248, 113, 113, 0.2);
+  color: var(--red);
+}
+
+.alert-success {
+  background: rgba(74, 222, 128, 0.1);
+  border-color: rgba(74, 222, 128, 0.2);
+  color: var(--green);
+}
+
+.badge {
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.fa-solid,
+.fa-regular,
+.fa-brands {
+  line-height: 1;
+}

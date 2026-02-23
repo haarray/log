@@ -1,0 +1,17 @@
+<IfModule mod_rewrite.c>
+    Options -MultiViews -Indexes
+    RewriteEngine On
+
+    # Serve static assets from /public when app is accessed via /project-folder.
+    RewriteRule ^(css|js|icons|img|storage|uploads|vendor)/(.*)$ public/$1/$2 [L]
+    RewriteRule ^(favicon\.ico|robots\.txt|manifest\.json|sw\.js)$ public/$1 [L]
+    RewriteRule ^docs(?:/.*)?$ index.php [L]
+
+    # Existing files/directories should be served directly.
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Route everything else to Laravel root front controller.
+    RewriteRule ^ index.php [L]
+</IfModule>
