@@ -5,9 +5,12 @@ Haarray Log is a Laravel-based expense tracker and personal portfolio manager bu
 ## Core highlights
 
 - Accounts module (bank/wallet/cash)
-- Transaction ledger (debit/credit with category/account links)
+- Transaction ledger CRUD (debit/credit with category/account links)
+- Category CRUD (user-owned categories + default system categories)
 - Portfolio module (IPO positions + gold positions)
 - ML suggestion feed (PHP-ML + rule-based checks)
+- Salary intelligence (delay/mismatch detection + tax/SSF estimate)
+- Live market sync (CDSC + ShareSansar + Hamro Patro ingestion)
 - Telegram bot webhook intake (`/link`, `/log`, `/income`, `/balance`)
 - In-app + Telegram notification dispatch via `App\Support\Notifier`
 - Root access reservation (`HAARRAY_ROOT_ADMIN_EMAIL`)
@@ -35,9 +38,7 @@ Any other account attempting `super-admin` is normalized to `admin`.
 composer install
 cp .env.example .env
 php artisan key:generate
-php artisan migrate --force
-php artisan db:seed --force
-php artisan haarray:permissions:sync --seed-admins
+php artisan log:setup:local --fresh --seed-admins
 php artisan serve
 ```
 
@@ -94,6 +95,9 @@ Bot commands:
 ## Operations commands
 
 ```bash
+# One-shot local bootstrap (creates DB when possible, migrates, seeds, syncs perms, market warmup)
+php artisan log:setup:local --fresh --seed-admins
+
 # Sync roles/permissions + optional admins
 php artisan haarray:permissions:sync --seed-admins
 
@@ -105,6 +109,10 @@ php artisan log:suggestions:run
 
 # Generate + push high-priority alerts
 php artisan log:suggestions:run --notify
+
+# Sync live IPO board + stock prices + gold price
+php artisan log:market:sync
+php artisan log:market:sync --notify
 
 # Mirror shared core layer into this repo
 php artisan log:core:sync --dry-run
@@ -151,6 +159,60 @@ Full mirror excludes:
 - `node_modules`
 - `storage`
 - `public/uploads`
+
+## Automatic core -> log reflection
+
+By default, core changes are **not** mirrored automatically just by `git push`.
+
+Use either:
+
+1. Core-side helper:
+
+```bash
+cd ../harray-core
+./scripts/push-and-reflect.sh log
+```
+
+2. Log-side pull sync:
+
+```bash
+php artisan log:core:sync
+```
+
+To make it fully automatic in GitHub, add a CI workflow in `harray-core` that runs reflection and pushes to `haarray/log` on every push to `main` (requires a repo write token/secret).
+
+## Live market sources
+
+- IPO board: CDSC primary + ShareSansar fallback merge
+- Today share prices (LTP): ShareSansar
+- Gold Hallmark (tola): Hamro Patro + goldpricenepal fallback
+- USD/NPR: NRB API primary + open.er-api fallback
+
+Environment keys:
+
+- `MARKET_CDSC_IPO_URL`
+- `MARKET_NRB_URL`
+- `MARKET_FOREX_URL`
+- `MARKET_NEPSE_URL`
+- `MARKET_GOLD_URL`
+- `MARKET_SHARESANSAR_BASE_URL`
+- `MARKET_SHARESANSAR_TODAY_SHARE_PATH`
+- `MARKET_SHARESANSAR_EXISTING_ISSUE_ENDPOINT`
+- `MARKET_SHARESANSAR_UPCOMING_ISSUE_ENDPOINT`
+- `MARKET_HAMROPATRO_GOLD_URL`
+
+Scheduler defaults:
+
+- `log:market:sync --notify` at minute `02` every hour
+- `log:suggestions:run --notify` at minute `08` every hour
+
+Shared-hosting fallback:
+
+- Inline automation can run market/suggestion refresh during normal GET requests when cron is unavailable.
+- Control via:
+  - `HAARRAY_INLINE_AUTOMATION=true`
+  - `HAARRAY_INLINE_MARKET_REFRESH_EVERY_SECONDS=3600`
+  - `HAARRAY_INLINE_SUGGESTIONS_EVERY_SECONDS=900`
 
 ## Storage and git hygiene
 

@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use App\Http\Middleware\RunInlineAutomation;
 use App\Http\Middleware\SetUiLocale;
 use App\Http\Middleware\TrackUserActivity;
 use Spatie\Permission\Middleware\PermissionMiddleware;
@@ -19,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             SetUiLocale::class,
             TrackUserActivity::class,
+            RunInlineAutomation::class,
         ]);
 
         $middleware->alias([

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Services\MarketSyncService;
 use App\Models\GoldPosition;
 use App\Models\IPO;
 use App\Models\IpoPosition;
@@ -78,6 +79,20 @@ class PortfolioController extends Controller
         ]);
 
         return back()->with('success', 'IPO master entry created.');
+    }
+
+    public function syncMarket(Request $request, MarketSyncService $marketSync): RedirectResponse
+    {
+        $report = $marketSync->sync(true);
+
+        return back()->with('success', sprintf(
+            'Market synced. IPOs +%d/%d, prices %d, gold updated %d, alerts %d.',
+            (int) $report['ipos_created'],
+            (int) $report['ipos_updated'],
+            (int) $report['ipo_prices_updated'],
+            (int) $report['gold_positions_updated'],
+            (int) $report['alerts_sent']
+        ));
     }
 
     public function storeIpoPosition(Request $request): RedirectResponse

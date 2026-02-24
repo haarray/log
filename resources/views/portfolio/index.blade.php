@@ -9,6 +9,14 @@
       <div class="h-page-title">Portfolio Manager</div>
       <div class="h-page-sub">Track IPO applications, allotment gain, and gold holdings.</div>
     </div>
+    @can('manage portfolio')
+      <form method="POST" action="{{ route('portfolio.sync-market') }}" data-spa>
+        @csrf
+        <button class="h-btn ghost" type="submit">
+          <i class="fa-solid fa-arrows-rotate"></i> Sync Live Market
+        </button>
+      </form>
+    @endcan
   </div>
 
   <div class="h-grid-4" style="margin-bottom:16px;">
@@ -167,11 +175,12 @@
             @method('PUT')
             <div class="h-card-body">
               <div class="row g-2 align-items-end">
-                <div class="col-lg-3"><label class="h-label">IPO</label><input class="h-input" value="{{ optional($position->ipo)->company_name }}" disabled></div>
+                <div class="col-lg-2"><label class="h-label">IPO</label><input class="h-input" value="{{ optional($position->ipo)->company_name }}" disabled></div>
                 <div class="col-lg-2"><label class="h-label">Status</label><select class="h-input" name="status"><option value="applied" @selected($position->status==='applied')>Applied</option><option value="allotted" @selected($position->status==='allotted')>Allotted</option><option value="sold" @selected($position->status==='sold')>Sold</option><option value="cancelled" @selected($position->status==='cancelled')>Cancelled</option></select></div>
                 <div class="col-lg-1"><label class="h-label">Applied</label><input class="h-input" name="units_applied" type="number" value="{{ $position->units_applied }}"></div>
                 <div class="col-lg-1"><label class="h-label">Allotted</label><input class="h-input" name="units_allotted" type="number" value="{{ $position->units_allotted }}"></div>
                 <div class="col-lg-2"><label class="h-label">Invested</label><input class="h-input" name="invested_amount" type="number" step="0.01" value="{{ $position->invested_amount }}"></div>
+                <div class="col-lg-1"><label class="h-label">Live LTP</label><input class="h-input" value="{{ number_format((float) (optional($position->ipo)->market_price ?? 0), 2) }}" disabled></div>
                 <div class="col-lg-2"><label class="h-label">Current Price</label><input class="h-input" name="current_price" type="number" step="0.01" value="{{ $position->current_price }}"></div>
                 <div class="col-lg-1 d-flex gap-2">
                   <button class="h-btn ghost" type="submit"><i class="fa-solid fa-floppy-disk"></i></button>

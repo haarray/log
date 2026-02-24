@@ -4,12 +4,14 @@ use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schedule;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Symfony\Component\Process\Process;
 use App\Support\RbacBootstrap;
 use App\Support\Notifier;
 use App\Support\HealthCheckService;
 use App\Http\Services\MLSuggestionService;
+use App\Http\Services\MarketSyncService;
 use App\Models\Suggestion;
 use App\Models\User;
 
@@ -74,6 +76,7 @@ Artisan::command('haarray:starter:setup {--seed-admins : Seed/update default adm
     $this->call('haarray:permissions:sync', [
         '--seed-admins' => (bool) $this->option('seed-admins'),
     ]);
+    $this->call('log:market:sync');
 
     $this->call('optimize:clear');
     $this->call('migrate:status');
@@ -94,6 +97,69 @@ Artisan::command('haarray:starter:setup {--seed-admins : Seed/update default adm
 
     return self::SUCCESS;
 })->purpose('Run starter bootstrap tasks (permissions sync, diagnostics hints, cron guidance)');
+
+Artisan::command('log:setup:local {--fresh : Drop all tables and re-run full migration} {--seed-admins : Ensure default admin users}', function () {
+    $connectionName = (string) config('database.default', 'mysql');
+    $connection = (array) config("database.connections.{$connectionName}", []);
+    $driver = strtolower((string) ($connection['driver'] ?? $connectionName));
+    $databaseName = trim((string) ($connection['database'] ?? ''));
+
+    if ($driver === 'mysql' && $databaseName !== '') {
+        try {
+            $host = (string) ($connection['host'] ?? '127.0.0.1');
+            $port = (int) ($connection['port'] ?? 3306);
+            $username = (string) ($connection['username'] ?? '');
+            $password = (string) ($connection['password'] ?? '');
+            $charset = (string) ($connection['charset'] ?? 'utf8mb4');
+            $collation = (string) ($connection['collation'] ?? 'utf8mb4_unicode_ci');
+
+            $pdo = new PDO(
+                "mysql:host={$host};port={$port}",
+                $username,
+                $password,
+                [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+            );
+            $safeDb = str_replace('`', '``', $databaseName);
+            $safeCharset = preg_replace('/[^a-zA-Z0-9_]/', '', $charset) ?: 'utf8mb4';
+            $safeCollation = preg_replace('/[^a-zA-Z0-9_]/', '', $collation) ?: 'utf8mb4_unicode_ci';
+            $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$safeDb}` CHARACTER SET {$safeCharset} COLLATE {$safeCollation}");
+            $this->info("Ensured MySQL database: {$databaseName}");
+        } catch (\Throwable $exception) {
+            $this->warn('Could not auto-create DB. Continuing with current connection settings.');
+            $this->line('Reason: ' . $exception->getMessage());
+        }
+    }
+
+    if ($driver === 'sqlite') {
+        $sqlitePath = $databaseName;
+        if ($sqlitePath === '') {
+            $sqlitePath = database_path('database.sqlite');
+            config(["database.connections.{$connectionName}.database" => $sqlitePath]);
+        }
+        if (!file_exists($sqlitePath)) {
+            @touch($sqlitePath);
+            $this->info("Created SQLite file: {$sqlitePath}");
+        }
+    }
+
+    if ((bool) $this->option('fresh')) {
+        $this->call('migrate:fresh', ['--force' => true]);
+        $this->call('db:seed', ['--force' => true]);
+    } else {
+        $this->call('migrate', ['--force' => true]);
+    }
+
+    $this->call('haarray:permissions:sync', [
+        '--seed-admins' => (bool) $this->option('seed-admins'),
+    ]);
+
+    $this->call('optimize:clear');
+
+    $this->info('LOG local setup completed.');
+    $this->line('Current DB: ' . ($databaseName !== '' ? $databaseName : '[empty]'));
+
+    return self::SUCCESS;
+})->purpose('Create local LOG database (if possible), migrate, seed, and sync roles/admins');
 
 Artisan::command('haarray:health:check', function () {
     /** @var HealthCheckService $health */
@@ -130,6 +196,49 @@ Artisan::command('log:permissions:generate {--seed-admins : Create/update defaul
         '--seed-admins' => (bool) $this->option('seed-admins'),
     ]);
 })->purpose('Alias for permissions/roles generation for the LOG app');
+
+Artisan::command('log:telegram:webhook {--set : Register webhook URL} {--url= : Explicit webhook URL}', function () {
+    $token = trim((string) config('haarray.telegram.token', ''));
+    if ($token === '') {
+        $this->error('TELEGRAM_BOT_TOKEN is empty in environment.');
+        return self::FAILURE;
+    }
+
+    $url = trim((string) ($this->option('url') ?: config('haarray.telegram.webhook_url')));
+    if ($url === '') {
+        $this->error('Webhook URL is empty. Provide --url or TELEGRAM_BOT_WEBHOOK_URL.');
+        return self::FAILURE;
+    }
+
+    if ((bool) $this->option('set')) {
+        $set = Http::asForm()->post("https://api.telegram.org/bot{$token}/setWebhook", [
+            'url' => $url,
+        ]);
+
+        if (!$set->successful() || $set->json('ok') !== true) {
+            $this->error('setWebhook failed.');
+            $this->line((string) $set->body());
+            return self::FAILURE;
+        }
+
+        $this->info('Webhook updated to: ' . $url);
+    }
+
+    $info = Http::get("https://api.telegram.org/bot{$token}/getWebhookInfo");
+    if (!$info->successful() || $info->json('ok') !== true) {
+        $this->error('getWebhookInfo failed.');
+        $this->line((string) $info->body());
+        return self::FAILURE;
+    }
+
+    $result = (array) $info->json('result', []);
+    $this->line('Current URL: ' . (string) ($result['url'] ?? '[none]'));
+    $this->line('Pending updates: ' . (int) ($result['pending_update_count'] ?? 0));
+    $this->line('Last error date: ' . ((int) ($result['last_error_date'] ?? 0) > 0 ? date('Y-m-d H:i:s', (int) $result['last_error_date']) : 'none'));
+    $this->line('Last error message: ' . (string) ($result['last_error_message'] ?? 'none'));
+
+    return self::SUCCESS;
+})->purpose('Inspect or set Telegram bot webhook for LOG app');
 
 Artisan::command('log:suggestions:run {--user-id=* : Limit to specific user IDs} {--notify : Push high-priority results as notifications}', function () {
     /** @var MLSuggestionService $ml */
@@ -192,6 +301,26 @@ Artisan::command('log:suggestions:run {--user-id=* : Limit to specific user IDs}
 
     return self::SUCCESS;
 })->purpose('Generate ML suggestions and optionally notify users');
+
+Artisan::command('log:market:sync {--notify : Notify users when open IPO matches available balance}', function () {
+    /** @var MarketSyncService $sync */
+    $sync = app(MarketSyncService::class);
+    $report = $sync->sync((bool) $this->option('notify'));
+
+    $this->info('Market sync completed.');
+    $this->line('Issue rows seen: ' . (int) $report['issues_seen']);
+    $this->line('IPOs created/updated: ' . (int) $report['ipos_created'] . '/' . (int) $report['ipos_updated']);
+    $this->line('Price rows seen: ' . (int) $report['prices_seen']);
+    $this->line('IPO prices updated: ' . (int) $report['ipo_prices_updated']);
+    $this->line('IPO positions repriced: ' . (int) $report['ipo_positions_updated']);
+    $this->line('Gold positions repriced: ' . (int) $report['gold_positions_updated']);
+    $this->line('Gold (tola/gram): NPR ' . number_format((float) $report['gold_per_tola'], 2) . ' / NPR ' . number_format((float) $report['gold_per_gram'], 2));
+    if ((bool) $this->option('notify')) {
+        $this->line('Opportunity alerts sent: ' . (int) $report['alerts_sent']);
+    }
+
+    return self::SUCCESS;
+})->purpose('Sync live IPO/gold/price data and optionally notify users');
 
 Artisan::command('log:core:sync {--source= : Path to source core project} {--profile=log : Target profile key from source reflection config} {--dry-run : Preview rsync actions only} {--full : Run full repository mirror instead of shared-path reflection}', function () {
     $source = trim((string) ($this->option('source') ?: env('LOG_CORE_SOURCE_PATH', base_path('../harray-core'))));
@@ -387,5 +516,9 @@ Artisan::command('log:core:sync {--source= : Path to source core project} {--pro
 })->purpose('Sync core shared layer into LOG app (segregated reflection mode)');
 
 Schedule::command('log:suggestions:run --notify')
-    ->hourly()
+    ->hourlyAt(8)
+    ->withoutOverlapping();
+
+Schedule::command('log:market:sync --notify')
+    ->hourlyAt(2)
     ->withoutOverlapping();

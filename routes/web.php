@@ -61,9 +61,25 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:manage transactions')
         ->name('transactions.store');
 
+    Route::put('/transactions/{transaction}', [TransactionController::class, 'update'])
+        ->middleware('permission:manage transactions')
+        ->name('transactions.update');
+
     Route::delete('/transactions/{transaction}', [TransactionController::class, 'destroy'])
         ->middleware('permission:manage transactions')
         ->name('transactions.delete');
+
+    Route::post('/transactions/categories', [TransactionController::class, 'storeCategory'])
+        ->middleware('permission:manage transactions')
+        ->name('transactions.categories.store');
+
+    Route::put('/transactions/categories/{category}', [TransactionController::class, 'updateCategory'])
+        ->middleware('permission:manage transactions')
+        ->name('transactions.categories.update');
+
+    Route::delete('/transactions/categories/{category}', [TransactionController::class, 'deleteCategory'])
+        ->middleware('permission:manage transactions')
+        ->name('transactions.categories.delete');
 
     Route::get('/portfolio', [PortfolioController::class, 'index'])
         ->middleware('permission:view portfolio')

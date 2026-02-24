@@ -19,6 +19,8 @@ class IPO extends Model
         'open_date',
         'close_date',
         'price_per_unit',
+        'market_price',
+        'market_price_updated_at',
         'min_units',
         'max_units',
         'listing_date',
@@ -32,6 +34,8 @@ class IPO extends Model
             'close_date' => 'date',
             'listing_date' => 'date',
             'price_per_unit' => 'decimal:2',
+            'market_price' => 'decimal:2',
+            'market_price_updated_at' => 'datetime',
         ];
     }
 
