@@ -31,7 +31,7 @@ return [
     */
     'telegram' => [
         'token'       => env('TELEGRAM_BOT_TOKEN'),
-        'webhook_url' => env('TELEGRAM_BOT_WEBHOOK_URL', rtrim((string) env('APP_URL', ''), '/') . '/telegram/webhook'),
+        'webhook_url' => env('TELEGRAM_BOT_WEBHOOK_URL', env('APP_URL') . '/api/telegram/webhook'),
         'bot_username' => env('TELEGRAM_BOT_USERNAME', 'HariLogBot'),
     ],
 
@@ -41,23 +41,12 @@ return [
     |--------------------------------------------------------------------------
     */
     'market' => [
-        'gold_url'      => env('MARKET_GOLD_URL', 'https://www.goldpricenepal.com'),
-        'nepse_url'     => env('MARKET_NEPSE_URL', 'https://merolagani.com/StockQuote.aspx'),
-        'ipo_url'       => env('MARKET_CDSC_IPO_URL', 'https://cdsc.com.np/cdscportal/IpoList.aspx'),
-        'forex_url'     => env('MARKET_FOREX_URL', 'https://open.er-api.com/v6/latest/USD'),
-        'nrb_url'       => env('MARKET_NRB_URL', 'https://www.nrb.org.np/exportForexJSON.php'),
+        'gold_url'      => 'https://www.goldpricenepal.com',
+        'nepse_url'     => 'https://merolagani.com/StockQuote.aspx',
+        'ipo_url'       => 'https://cdsc.com.np/cdscportal/IpoList.aspx',
+        'forex_url'     => 'https://open.er-api.com/v6/latest/USD',
+        'nrb_url'       => 'https://www.nrb.org.np/exportForexJSON.php',
         'cache_minutes' => env('MARKET_CACHE_MINUTES', 60),
-        'sources' => [
-            'sharesansar' => [
-                'base_url' => env('MARKET_SHARESANSAR_BASE_URL', 'https://www.sharesansar.com'),
-                'today_share_path' => env('MARKET_SHARESANSAR_TODAY_SHARE_PATH', '/today-share-price'),
-                'existing_issue_endpoint' => env('MARKET_SHARESANSAR_EXISTING_ISSUE_ENDPOINT', '/existing-issues-hmins'),
-                'upcoming_issue_endpoint' => env('MARKET_SHARESANSAR_UPCOMING_ISSUE_ENDPOINT', '/upcoming-issue-hmins'),
-            ],
-            'hamropatro' => [
-                'gold_url' => env('MARKET_HAMROPATRO_GOLD_URL', 'https://www.hamropatro.com/gold'),
-            ],
-        ],
     ],
 
     /*
@@ -142,34 +131,6 @@ return [
                 'icon' => 'fa-solid fa-gauge-high',
             ],
             [
-                'title' => 'Accounts',
-                'subtitle' => 'Bank and wallet balances',
-                'route' => 'accounts.index',
-                'permission' => 'view accounts',
-                'icon' => 'fa-solid fa-building-columns',
-            ],
-            [
-                'title' => 'Transactions',
-                'subtitle' => 'Expense and income logs',
-                'route' => 'transactions.index',
-                'permission' => 'view transactions',
-                'icon' => 'fa-solid fa-money-bill-transfer',
-            ],
-            [
-                'title' => 'Portfolio',
-                'subtitle' => 'IPO and gold positions',
-                'route' => 'portfolio.index',
-                'permission' => 'view portfolio',
-                'icon' => 'fa-solid fa-chart-line',
-            ],
-            [
-                'title' => 'Suggestions',
-                'subtitle' => 'ML recommendations',
-                'route' => 'suggestions.index',
-                'permission' => 'view suggestions',
-                'icon' => 'fa-solid fa-lightbulb',
-            ],
-            [
                 'title' => 'Starter Docs',
                 'subtitle' => 'Components and integration guides',
                 'route' => 'docs.index',
@@ -222,30 +183,6 @@ return [
                 'query' => 'tab=settings-activity',
                 'permission' => 'view settings',
                 'icon' => 'fa-solid fa-chart-line',
-            ],
-            [
-                'key' => 'account',
-                'model' => \App\Models\Account::class,
-                'id' => 'id',
-                'title' => 'name',
-                'subtitle' => 'institution',
-                'search' => ['name', 'institution', 'type', 'currency'],
-                'route' => 'accounts.index',
-                'query' => '',
-                'permission' => 'view accounts',
-                'icon' => 'fa-solid fa-building-columns',
-            ],
-            [
-                'key' => 'transaction',
-                'model' => \App\Models\Transaction::class,
-                'id' => 'id',
-                'title' => 'title',
-                'subtitle' => 'notes',
-                'search' => ['title', 'notes', 'type', 'source'],
-                'route' => 'transactions.index',
-                'query' => '',
-                'permission' => 'view transactions',
-                'icon' => 'fa-solid fa-money-bill-transfer',
             ],
         ],
     ],

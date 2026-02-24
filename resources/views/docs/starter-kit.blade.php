@@ -131,18 +131,6 @@ document.addEventListener('hspa:afterSwap', (event) =&gt; {
       </section>
 
       <section class="doc-block">
-        <h3>HariLog Finance Flow (Production Checklist)</h3>
-        <ol>
-          <li>Register user → add first account from <code>/accounts</code> (bank/eSewa/Khalti/cash).</li>
-          <li>Log first transaction from <code>/transactions</code> (web) or Telegram <code>/log 200 food momos</code>.</li>
-          <li>Run hourly market sync: <code>php artisan log:market:sync --notify</code>.</li>
-          <li>Run hourly ML suggestions: <code>php artisan log:suggestions:run --notify</code>.</li>
-          <li>Set Telegram webhook: <code>php artisan log:telegram:webhook --set --url="https://your-app/telegram/webhook"</code>.</li>
-          <li>Use <code>php artisan haarray:permissions:sync --seed-admins</code> after role/permission changes.</li>
-        </ol>
-      </section>
-
-      <section class="doc-block">
         <h3>Tutorial Packs</h3>
         <p>Use these docs as implementation blueprints when building your own modules.</p>
         <ul>

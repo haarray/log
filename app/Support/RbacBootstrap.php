@@ -19,14 +19,6 @@ class RbacBootstrap
         return [
             'view dashboard',
             'manage dashboard',
-            'view accounts',
-            'manage accounts',
-            'view transactions',
-            'manage transactions',
-            'view portfolio',
-            'manage portfolio',
-            'view suggestions',
-            'manage suggestions',
             'view docs',
             'manage docs',
             'view settings',
@@ -57,14 +49,6 @@ class RbacBootstrap
             'manager' => [
                 'view dashboard',
                 'manage dashboard',
-                'view accounts',
-                'manage accounts',
-                'view transactions',
-                'manage transactions',
-                'view portfolio',
-                'manage portfolio',
-                'view suggestions',
-                'manage suggestions',
                 'view docs',
                 'manage docs',
                 'view settings',
@@ -79,16 +63,9 @@ class RbacBootstrap
                 'view exports',
                 'manage exports',
             ],
-            // Signup users must complete the personal finance flow without admin access.
+            // Keep signup users minimal: dashboard + notifications.
             'user' => [
                 'view dashboard',
-                'view accounts',
-                'manage accounts',
-                'view transactions',
-                'manage transactions',
-                'view portfolio',
-                'manage portfolio',
-                'view suggestions',
                 'view notifications',
             ],
             'test-role' => [

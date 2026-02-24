@@ -185,58 +185,41 @@
         {{ $hlText('Dashboard', 'ड्यासबोर्ड') }}
       </a>
     @endcan
-    @can('view transactions')
-      <a data-spa href="{{ route('transactions.index') }}" class="h-nav-item {{ request()->routeIs('transactions.*') ? 'active' : '' }}">
-        <i class="h-nav-icon fa-solid fa-money-bill-transfer fa-fw"></i>
-        {{ $hlText('Transactions', 'लेनदेन') }}
-      </a>
-    @endcan
-    @can('view accounts')
-      <a data-spa href="{{ route('accounts.index') }}" class="h-nav-item {{ request()->routeIs('accounts.*') ? 'active' : '' }}">
-        <i class="h-nav-icon fa-solid fa-building-columns fa-fw"></i>
-        {{ $hlText('Accounts', 'खाताहरू') }}
-      </a>
-    @endcan
-    @can('view portfolio')
-      <a data-spa href="{{ route('portfolio.index') }}" class="h-nav-item {{ request()->routeIs('portfolio.*') && !request()->has('panel') ? 'active' : '' }}">
-        <i class="h-nav-icon fa-solid fa-chart-line fa-fw"></i>
-        {{ $hlText('Portfolio', 'पोर्टफोलियो') }}
-      </a>
-    @endcan
+    <a href="#" class="h-nav-item" onclick="HToast.info('Coming soon!');return false;">
+      <i class="h-nav-icon fa-solid fa-money-bill-transfer fa-fw"></i>
+      {{ $hlText('Transactions', 'लेनदेन') }}
+      <span class="h-nav-badge">Soon</span>
+    </a>
+    <a href="#" class="h-nav-item" onclick="HToast.info('Coming soon!');return false;">
+      <i class="h-nav-icon fa-solid fa-building-columns fa-fw"></i>
+      {{ $hlText('Accounts', 'खाताहरू') }}
+    </a>
+    <a href="#" class="h-nav-item" onclick="HToast.info('Coming soon!');return false;">
+      <i class="h-nav-icon fa-solid fa-chart-line fa-fw"></i>
+      {{ $hlText('Portfolio', 'पोर्टफोलियो') }}
+    </a>
 
     <div class="h-nav-sec">{{ $hlText('Market', 'बजार') }}</div>
-    @can('view portfolio')
-      <a
-        data-spa
-        href="{{ route('portfolio.index', ['panel' => 'ipo']) }}"
-        class="h-nav-item {{ request()->routeIs('portfolio.*') && request()->query('panel') === 'ipo' ? 'active' : '' }}"
-      >
-        <i class="h-nav-icon fa-solid fa-clock fa-fw"></i>
-        {{ $hlText('IPO Tracker', 'आईपीओ ट्र्याकर') }}
-      </a>
-      <a
-        data-spa
-        href="{{ route('portfolio.index', ['panel' => 'gold']) }}"
-        class="h-nav-item {{ request()->routeIs('portfolio.*') && request()->query('panel') === 'gold' ? 'active' : '' }}"
-      >
-        <i class="h-nav-icon fa-solid fa-coins fa-fw"></i>
-        {{ $hlText('Gold & Forex', 'सुन र फरेक्स') }}
-      </a>
-    @endcan
+    <a href="#" class="h-nav-item" onclick="HToast.info('Coming soon!');return false;">
+      <i class="h-nav-icon fa-solid fa-clock fa-fw"></i>
+      {{ $hlText('IPO Tracker', 'आईपीओ ट्र्याकर') }}
+      <span class="h-nav-badge teal">3</span>
+    </a>
+    <a href="#" class="h-nav-item" onclick="HToast.info('Coming soon!');return false;">
+      <i class="h-nav-icon fa-solid fa-coins fa-fw"></i>
+      {{ $hlText('Gold & Forex', 'सुन र फरेक्स') }}
+    </a>
 
     <div class="h-nav-sec">{{ $hlText('Intelligence', 'विश्लेषण') }}</div>
-    @can('view suggestions')
-      <a data-spa href="{{ route('suggestions.index') }}" class="h-nav-item {{ request()->routeIs('suggestions.*') ? 'active' : '' }}">
-        <i class="h-nav-icon fa-solid fa-lightbulb fa-fw"></i>
-        {{ $hlText('Suggestions', 'सुझावहरू') }}
-      </a>
-    @endcan
-    @can('view docs')
-      <a data-spa href="{{ route('docs.index', ['tab' => 'docs-tutorials']) }}" class="h-nav-item">
-        <i class="h-nav-icon fa-brands fa-telegram fa-fw"></i>
-        {{ $hlText('Telegram Bot', 'टेलिग्राम बट') }}
-      </a>
-    @endcan
+    <a href="#" class="h-nav-item" onclick="HToast.info('Coming soon!');return false;">
+      <i class="h-nav-icon fa-solid fa-lightbulb fa-fw"></i>
+      {{ $hlText('Suggestions', 'सुझावहरू') }}
+      <span class="h-nav-badge">2</span>
+    </a>
+    <a href="#" class="h-nav-item" onclick="HToast.info('Coming soon!');return false;">
+      <i class="h-nav-icon fa-brands fa-telegram fa-fw"></i>
+      {{ $hlText('Telegram Bot', 'टेलिग्राम बट') }}
+    </a>
 
     <div class="h-nav-sec">{{ $hlText('System', 'सिस्टम') }}</div>
     @can('view docs')
