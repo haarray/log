@@ -185,11 +185,20 @@
         {{ $hlText('Dashboard', 'ड्यासबोर्ड') }}
       </a>
     @endcan
-    <a href="#" class="h-nav-item" onclick="HToast.info('Coming soon!');return false;">
-      <i class="h-nav-icon fa-solid fa-money-bill-transfer fa-fw"></i>
-      {{ $hlText('Transactions', 'लेनदेन') }}
-      <span class="h-nav-badge">Soon</span>
-    </a>
+    @if(\Illuminate\Support\Facades\Route::has('transactions.index'))
+      @can('view transactions')
+        <a data-spa href="{{ route('transactions.index') }}" class="h-nav-item {{ request()->routeIs('transactions.*') ? 'active' : '' }}">
+          <i class="h-nav-icon fa-solid fa-money-bill-transfer fa-fw"></i>
+          {{ $hlText('Transactions', 'लेनदेन') }}
+        </a>
+      @endcan
+    @else
+      <a href="#" class="h-nav-item" onclick="HToast.info('Coming soon!');return false;">
+        <i class="h-nav-icon fa-solid fa-money-bill-transfer fa-fw"></i>
+        {{ $hlText('Transactions', 'लेनदेन') }}
+        <span class="h-nav-badge">Soon</span>
+      </a>
+    @endif
     <a href="#" class="h-nav-item" onclick="HToast.info('Coming soon!');return false;">
       <i class="h-nav-icon fa-solid fa-building-columns fa-fw"></i>
       {{ $hlText('Accounts', 'खाताहरू') }}

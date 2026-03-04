@@ -233,3 +233,24 @@ chmod -R 0777 storage bootstrap/cache public/uploads
 chmod 0666 .env
 chmod +x artisan server.php index.php scripts/sync-core.sh
 ```
+
+## GitHub Actions auto-deploy to cPanel
+
+Workflow: `.github/workflows/deploy-cpanel-log.yml`
+
+Every push to `main` deploys this repository to your shared-hosting path through SSH + `rsync`, then runs composer/artisan optimization on the server.
+
+Required repository secrets:
+
+- `CPANEL_HOST`
+- `CPANEL_SSH_PORT` (optional, defaults to `22`)
+- `CPANEL_USER`
+- `CPANEL_SSH_PRIVATE_KEY`
+- `LOG_DEPLOY_PATH` (example: `/home8/pratikb1/log`)
+- `LOG_RUN_MIGRATIONS` (`1` or `0`)
+- `LOG_DEPLOY_DELETE` (`1` or `0`)
+
+Deploy behavior:
+
+- Preserves runtime data by excluding `.env`, `storage/`, and `public/uploads/`.
+- Keeps `vendor/` out of upload and runs `composer install` server-side when composer exists.
