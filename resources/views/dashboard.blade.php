@@ -38,7 +38,7 @@
   <div class="h-page-header">
     <div>
       <div class="h-page-title">
-        Welcome back, {{ explode(' ', auth()->user()->name)[0] }} 👋
+        Welcome back, Dharma.
       </div>
       <div class="h-page-sub">Here's your financial snapshot</div>
     </div>
