@@ -19,8 +19,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
             SetUiLocale::class,
-            TrackUserActivity::class,
             RunInlineAutomation::class,
+            TrackUserActivity::class,
         ]);
 
         $middleware->alias([
