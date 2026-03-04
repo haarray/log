@@ -16,7 +16,7 @@
   <div class="h-ticker">
     <span class="h-ticker-lbl">Live ·</span>
     <div class="h-ticker-item">
-      <span class="h-ticker-name">Gold/tola</span>
+      <span class="h-ticker-name">Gold/per. tola</span>
       <span class="h-ticker-val">रू {{ number_format($market['gold']) }}</span>
       <span class="h-ticker-chg {{ $market['gold_up'] ? 'up' : 'dn' }}">{{ $market['gold_chg'] }}</span>
     </div>
