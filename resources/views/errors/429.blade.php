@@ -4,4 +4,3 @@
 @section('code', '429')
 @section('heading', 'Too Many Requests')
 @section('message', 'Rate limit reached. Wait a moment before trying again.')
-@endsection
