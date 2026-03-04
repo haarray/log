@@ -56,23 +56,21 @@ jobs:
           set -euo pipefail
           HOST="${CPANEL_HOST:-cpanel.pratikbhujel.com.np}"
           PORT="${CPANEL_SSH_PORT:-1980}"
-          DELETE_FLAG=""
           if [ "${LOG_DEPLOY_DELETE:-0}" = "1" ]; then
-            DELETE_FLAG="--delete"
+            echo "LOG_DEPLOY_DELETE=1 requested; tar-based deploy mode does not support delete sync on shared hosting."
           fi
 
           ssh -p "$PORT" "${CPANEL_USER}@${HOST}" "mkdir -p '${LOG_DEPLOY_PATH}'"
 
-          rsync -az $DELETE_FLAG \
-            -e "ssh -p $PORT" \
-            --exclude ".git/" \
-            --exclude ".github/" \
-            --exclude ".env" \
-            --exclude "node_modules/" \
-            --exclude "vendor/" \
-            --exclude "storage/" \
-            --exclude "public/uploads/" \
-            ./ "${CPANEL_USER}@${HOST}:${LOG_DEPLOY_PATH}/"
+          tar -czf - \
+            --exclude=".git" \
+            --exclude=".github" \
+            --exclude=".env" \
+            --exclude="node_modules" \
+            --exclude="vendor" \
+            --exclude="storage" \
+            --exclude="public/uploads" \
+            . | ssh -p "$PORT" "${CPANEL_USER}@${HOST}" "tar -xzf - -C '${LOG_DEPLOY_PATH}'"
 
       - name: Run post-deploy commands
         env:
