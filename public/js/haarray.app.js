@@ -3016,9 +3016,11 @@
   ---------------------------*/
   const HDataTable = {
     selector: 'table[data-h-datatable]',
+    _lifecycleBound: false,
 
     init(root) {
       if (typeof $.fn.DataTable !== 'function') return;
+      this._bindLifecycleHandlers();
 
       const $root = root && root.querySelectorAll ? $(root) : $(document);
       const $targets = $root.is(this.selector) ? $root : $root.find(this.selector);
@@ -3114,6 +3116,34 @@
 
       $table.DataTable(options);
       $table.data('hDatatableReady', true);
+    },
+
+    _bindLifecycleHandlers() {
+      if (this._lifecycleBound) return;
+
+      document.addEventListener('h:tabs:changed', (event) => {
+        const panel = event && event.detail ? event.detail.panel : null;
+        if (!panel) return;
+        this._adjustWithin(panel);
+      });
+
+      document.addEventListener('shown.bs.modal', (event) => {
+        if (!event || !event.target) return;
+        this._adjustWithin(event.target);
+      });
+
+      this._lifecycleBound = true;
+    },
+
+    _adjustWithin(root) {
+      const scope = root && root.querySelectorAll ? root : document;
+      $(scope).find(this.selector).each((_, tableEl) => {
+        if (!$.fn.DataTable.isDataTable(tableEl)) return;
+        const api = $(tableEl).DataTable();
+        if (api && api.columns && typeof api.columns.adjust === 'function') {
+          api.columns.adjust();
+        }
+      });
     },
 
     _styleControls($container, lengthMenu) {

@@ -2,6 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Account;
+use App\Models\GoldPosition;
+use App\Models\IPO;
+use App\Models\IpoPosition;
+use App\Models\Transaction;
 use App\Models\UserActivity;
 use App\Models\User;
 use App\Support\AppSettings;
@@ -229,6 +234,296 @@ class UiOptionsController extends Controller
                 return (string) data_get($activity->meta, 'status', '-');
             })
             ->editColumn('created_at', fn (UserActivity $activity) => optional($activity->created_at)?->toIso8601String() ?: '')
+            ->toJson();
+    }
+
+    public function accountsTable(Request $request): JsonResponse
+    {
+        $query = Account::query()
+            ->where('user_id', (int) $request->user()->id)
+            ->select([
+                'id',
+                'name',
+                'institution',
+                'type',
+                'currency',
+                'balance',
+                'sort_order',
+                'is_active',
+                'updated_at',
+            ]);
+
+        return DataTables::eloquent($query)
+            ->editColumn('type', fn (Account $account) => strtoupper((string) $account->type))
+            ->editColumn('balance', fn (Account $account) => 'NPR ' . number_format((float) $account->balance, 2))
+            ->editColumn('is_active', function (Account $account) {
+                return $account->is_active ? '<span class="h-badge green">ACTIVE</span>' : '<span class="h-badge muted">INACTIVE</span>';
+            })
+            ->editColumn('updated_at', fn (Account $account) => optional($account->updated_at)?->format('Y-m-d H:i') ?: 'Empty')
+            ->addColumn('actions', function (Account $account) use ($request) {
+                if (!$request->user() || !$request->user()->can('manage accounts')) {
+                    return '<span class="h-muted">View only</span>';
+                }
+
+                $payload = $this->encodePayloadAttribute([
+                    'id' => (int) $account->id,
+                    'name' => (string) $account->name,
+                    'institution' => (string) ($account->institution ?? ''),
+                    'type' => (string) $account->type,
+                    'currency' => (string) $account->currency,
+                    'balance' => (string) ((float) $account->balance),
+                    'sort_order' => (int) ($account->sort_order ?? 0),
+                    'is_active' => (bool) $account->is_active,
+                ]);
+
+                $deleteAction = route('accounts.delete', $account);
+                $csrf = csrf_token();
+
+                $editButton = '<button type="button" class="btn btn-outline-secondary btn-sm h-action-icon" data-account-edit="' . $payload . '" title="Edit account" aria-label="Edit account">'
+                    . '<i class="fa-solid fa-pen-to-square"></i>'
+                    . '</button>';
+
+                $deleteForm = '<form method="POST" action="' . e($deleteAction) . '" class="d-inline-block" data-spa data-confirm="true" data-confirm-title="Delete account?" data-confirm-text="This account will be removed.">'
+                    . '<input type="hidden" name="_token" value="' . e($csrf) . '">'
+                    . '<input type="hidden" name="_method" value="DELETE">'
+                    . '<button type="submit" class="btn btn-outline-danger btn-sm h-action-icon" title="Delete account" aria-label="Delete account"><i class="fa-solid fa-trash"></i></button>'
+                    . '</form>';
+
+                return '<span class="h-action-group">' . $editButton . $deleteForm . '</span>';
+            })
+            ->rawColumns(['actions', 'is_active'])
+            ->toJson();
+    }
+
+    public function transactionsTable(Request $request): JsonResponse
+    {
+        $query = Transaction::query()
+            ->leftJoin('accounts', 'accounts.id', '=', 'transactions.account_id')
+            ->leftJoin('expense_categories', 'expense_categories.id', '=', 'transactions.category_id')
+            ->where('transactions.user_id', (int) $request->user()->id)
+            ->select([
+                'transactions.id',
+                'transactions.account_id',
+                'transactions.category_id',
+                'transactions.type',
+                'transactions.amount',
+                'transactions.title',
+                'transactions.notes',
+                'transactions.transaction_date',
+                'transactions.created_at',
+                DB::raw("COALESCE(expense_categories.name, 'Uncategorized') as category_name"),
+                DB::raw("CASE WHEN accounts.id IS NULL THEN 'No account' ELSE CONCAT(accounts.name, ' (', accounts.currency, ')') END as account_name"),
+            ]);
+
+        return DataTables::eloquent($query)
+            ->editColumn('transaction_date', fn (Transaction $transaction) => optional($transaction->transaction_date)?->format('Y-m-d') ?: 'Empty')
+            ->editColumn('type', function (Transaction $transaction) {
+                $badge = $transaction->type === 'credit' ? 'green' : 'gold';
+                return '<span class="h-badge ' . $badge . '">' . strtoupper((string) $transaction->type) . '</span>';
+            })
+            ->editColumn('title', fn (Transaction $transaction) => trim((string) ($transaction->title ?? '')) !== '' ? (string) $transaction->title : 'Empty')
+            ->editColumn('amount', function (Transaction $transaction) {
+                $prefix = $transaction->type === 'credit' ? '+' : '-';
+                return $prefix . ' NPR ' . number_format((float) $transaction->amount, 2);
+            })
+            ->addColumn('actions', function (Transaction $transaction) use ($request) {
+                if (!$request->user() || !$request->user()->can('manage transactions')) {
+                    return '<span class="h-muted">View only</span>';
+                }
+
+                $payload = $this->encodePayloadAttribute([
+                    'id' => (int) $transaction->id,
+                    'type' => (string) $transaction->type,
+                    'amount' => (string) ((float) $transaction->amount),
+                    'title' => (string) ($transaction->title ?? ''),
+                    'notes' => (string) ($transaction->notes ?? ''),
+                    'transaction_date' => optional($transaction->transaction_date)?->format('Y-m-d') ?: now()->toDateString(),
+                    'account_id' => (int) ($transaction->account_id ?? 0),
+                    'category_id' => (int) ($transaction->category_id ?? 0),
+                ]);
+
+                $deleteAction = route('transactions.delete', $transaction);
+                $csrf = csrf_token();
+
+                $editButton = '<button type="button" class="btn btn-outline-secondary btn-sm h-action-icon" data-transaction-edit="' . $payload . '" title="Edit transaction" aria-label="Edit transaction">'
+                    . '<i class="fa-solid fa-pen-to-square"></i>'
+                    . '</button>';
+
+                $deleteForm = '<form method="POST" action="' . e($deleteAction) . '" class="d-inline-block" data-spa data-confirm="true" data-confirm-title="Delete transaction?" data-confirm-text="This will reverse the related account balance too.">'
+                    . '<input type="hidden" name="_token" value="' . e($csrf) . '">'
+                    . '<input type="hidden" name="_method" value="DELETE">'
+                    . '<button type="submit" class="btn btn-outline-danger btn-sm h-action-icon" title="Delete transaction" aria-label="Delete transaction"><i class="fa-solid fa-trash"></i></button>'
+                    . '</form>';
+
+                return '<span class="h-action-group">' . $editButton . $deleteForm . '</span>';
+            })
+            ->rawColumns(['type', 'actions'])
+            ->toJson();
+    }
+
+    public function ipoPositionsTable(Request $request): JsonResponse
+    {
+        $query = IpoPosition::query()
+            ->leftJoin('ipos', 'ipos.id', '=', 'ipo_positions.ipo_id')
+            ->where('ipo_positions.user_id', (int) $request->user()->id)
+            ->select([
+                'ipo_positions.id',
+                'ipo_positions.ipo_id',
+                'ipo_positions.status',
+                'ipo_positions.units_applied',
+                'ipo_positions.units_allotted',
+                'ipo_positions.invested_amount',
+                'ipo_positions.current_price',
+                'ipo_positions.notes',
+                'ipo_positions.applied_at',
+                'ipo_positions.sold_at',
+                'ipos.company_name as ipo_company_name',
+                'ipos.symbol as ipo_symbol',
+                DB::raw('ROUND((COALESCE(ipo_positions.current_price, 0) * GREATEST(ipo_positions.units_allotted, 0)) - ipo_positions.invested_amount, 2) as unrealized_gain'),
+            ])
+            ->orderByDesc('ipo_positions.id');
+
+        return DataTables::eloquent($query)
+            ->editColumn('ipo_company_name', function (IpoPosition $position) {
+                $name = trim((string) ($position->ipo_company_name ?? ''));
+                $symbol = trim((string) ($position->ipo_symbol ?? ''));
+                if ($name === '') {
+                    return 'Unknown IPO';
+                }
+                return $symbol !== ''
+                    ? $name . ' (' . strtoupper($symbol) . ')'
+                    : $name;
+            })
+            ->editColumn('status', fn (IpoPosition $position) => strtoupper((string) $position->status))
+            ->editColumn('invested_amount', fn (IpoPosition $position) => 'NPR ' . number_format((float) $position->invested_amount, 2))
+            ->editColumn('current_price', function (IpoPosition $position) {
+                $current = (float) ($position->current_price ?? 0);
+                return $current > 0 ? 'NPR ' . number_format($current, 2) : 'Empty';
+            })
+            ->editColumn('unrealized_gain', function (IpoPosition $position) {
+                $gain = (float) ($position->unrealized_gain ?? 0);
+                $prefix = $gain >= 0 ? '+' : '-';
+                return $prefix . ' NPR ' . number_format(abs($gain), 2);
+            })
+            ->addColumn('actions', function (IpoPosition $position) use ($request) {
+                if (!$request->user() || !$request->user()->can('manage portfolio')) {
+                    return '<span class="h-muted">View only</span>';
+                }
+
+                $payload = $this->encodePayloadAttribute([
+                    'id' => (int) $position->id,
+                    'status' => (string) $position->status,
+                    'units_applied' => (int) $position->units_applied,
+                    'units_allotted' => (int) ($position->units_allotted ?? 0),
+                    'invested_amount' => (string) ((float) $position->invested_amount),
+                    'current_price' => (string) ((float) ($position->current_price ?? 0)),
+                    'notes' => (string) ($position->notes ?? ''),
+                    'applied_at' => optional($position->applied_at)?->format('Y-m-d') ?: '',
+                    'sold_at' => optional($position->sold_at)?->format('Y-m-d') ?: '',
+                ]);
+
+                $deleteAction = route('portfolio.positions.delete', $position);
+                $csrf = csrf_token();
+
+                $editButton = '<button type="button" class="btn btn-outline-secondary btn-sm h-action-icon" data-ipo-position-edit="' . $payload . '" title="Edit IPO position" aria-label="Edit IPO position">'
+                    . '<i class="fa-solid fa-pen-to-square"></i>'
+                    . '</button>';
+
+                $deleteForm = '<form method="POST" action="' . e($deleteAction) . '" class="d-inline-block" data-spa data-confirm="true" data-confirm-title="Delete IPO position?" data-confirm-text="This position will be removed permanently.">'
+                    . '<input type="hidden" name="_token" value="' . e($csrf) . '">'
+                    . '<input type="hidden" name="_method" value="DELETE">'
+                    . '<button type="submit" class="btn btn-outline-danger btn-sm h-action-icon" title="Delete IPO position" aria-label="Delete IPO position"><i class="fa-solid fa-trash"></i></button>'
+                    . '</form>';
+
+                return '<span class="h-action-group">' . $editButton . $deleteForm . '</span>';
+            })
+            ->rawColumns(['actions'])
+            ->toJson();
+    }
+
+    public function goldPositionsTable(Request $request): JsonResponse
+    {
+        $query = GoldPosition::query()
+            ->where('user_id', (int) $request->user()->id)
+            ->select([
+                'id',
+                'label',
+                'source',
+                'grams',
+                'buy_price_per_gram',
+                'current_price_per_gram',
+                'notes',
+                'bought_at',
+                DB::raw('ROUND(grams * buy_price_per_gram, 2) as invested_value'),
+                DB::raw('ROUND(grams * COALESCE(NULLIF(current_price_per_gram, 0), buy_price_per_gram), 2) as current_value'),
+            ])
+            ->latest('bought_at')
+            ->latest('id');
+
+        return DataTables::eloquent($query)
+            ->editColumn('invested_value', fn (GoldPosition $gold) => 'NPR ' . number_format((float) ($gold->invested_value ?? 0), 2))
+            ->editColumn('current_value', fn (GoldPosition $gold) => 'NPR ' . number_format((float) ($gold->current_value ?? 0), 2))
+            ->editColumn('bought_at', fn (GoldPosition $gold) => optional($gold->bought_at)?->format('Y-m-d') ?: 'Empty')
+            ->addColumn('actions', function (GoldPosition $gold) use ($request) {
+                if (!$request->user() || !$request->user()->can('manage portfolio')) {
+                    return '<span class="h-muted">View only</span>';
+                }
+
+                $payload = $this->encodePayloadAttribute([
+                    'id' => (int) $gold->id,
+                    'label' => (string) ($gold->label ?? ''),
+                    'source' => (string) ($gold->source ?? ''),
+                    'grams' => (string) ((float) $gold->grams),
+                    'buy_price_per_gram' => (string) ((float) $gold->buy_price_per_gram),
+                    'current_price_per_gram' => (string) ((float) ($gold->current_price_per_gram ?? 0)),
+                    'notes' => (string) ($gold->notes ?? ''),
+                    'bought_at' => optional($gold->bought_at)?->format('Y-m-d') ?: '',
+                ]);
+
+                $deleteAction = route('portfolio.gold.delete', $gold);
+                $csrf = csrf_token();
+
+                $editButton = '<button type="button" class="btn btn-outline-secondary btn-sm h-action-icon" data-gold-position-edit="' . $payload . '" title="Edit gold position" aria-label="Edit gold position">'
+                    . '<i class="fa-solid fa-pen-to-square"></i>'
+                    . '</button>';
+
+                $deleteForm = '<form method="POST" action="' . e($deleteAction) . '" class="d-inline-block" data-spa data-confirm="true" data-confirm-title="Delete gold position?" data-confirm-text="This gold position will be removed permanently.">'
+                    . '<input type="hidden" name="_token" value="' . e($csrf) . '">'
+                    . '<input type="hidden" name="_method" value="DELETE">'
+                    . '<button type="submit" class="btn btn-outline-danger btn-sm h-action-icon" title="Delete gold position" aria-label="Delete gold position"><i class="fa-solid fa-trash"></i></button>'
+                    . '</form>';
+
+                return '<span class="h-action-group">' . $editButton . $deleteForm . '</span>';
+            })
+            ->rawColumns(['actions'])
+            ->toJson();
+    }
+
+    public function ipoMasterTable(Request $request): JsonResponse
+    {
+        $query = IPO::query()
+            ->select([
+                'id',
+                'company_name',
+                'symbol',
+                'status',
+                'open_date',
+                'close_date',
+                'price_per_unit',
+                'market_price',
+            ])
+            ->orderByRaw("FIELD(status, 'open', 'upcoming', 'closed')")
+            ->orderByDesc('id');
+
+        return DataTables::eloquent($query)
+            ->editColumn('status', fn (IPO $ipo) => strtoupper((string) $ipo->status))
+            ->editColumn('open_date', fn (IPO $ipo) => optional($ipo->open_date)?->format('Y-m-d') ?: 'Empty')
+            ->editColumn('close_date', fn (IPO $ipo) => optional($ipo->close_date)?->format('Y-m-d') ?: 'Empty')
+            ->editColumn('price_per_unit', fn (IPO $ipo) => 'NPR ' . number_format((float) $ipo->price_per_unit, 2))
+            ->editColumn('market_price', function (IPO $ipo) {
+                $marketPrice = (float) ($ipo->market_price ?? 0);
+                return $marketPrice > 0 ? 'NPR ' . number_format($marketPrice, 2) : 'Empty';
+            })
             ->toJson();
     }
 
@@ -1493,6 +1788,11 @@ class UiOptionsController extends Controller
             ->pluck('total', 'role_id')
             ->map(fn ($value) => (int) $value)
             ->all();
+    }
+
+    private function encodePayloadAttribute(array $payload): string
+    {
+        return e(base64_encode((string) json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)));
     }
 
     private function computeHotReloadSignature(): string

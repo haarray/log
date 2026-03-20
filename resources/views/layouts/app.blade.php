@@ -21,9 +21,7 @@
     $map = [
       'Control Hub' => 'कन्ट्रोल हब',
       'Users' => 'प्रयोगकर्ता',
-      'Roles & Access' => 'भूमिका र पहुँच',
       'Global Search' => 'ग्लोबल खोज',
-      'Media Manager' => 'मिडिया म्यानेजर',
       'App & Branding' => 'एप र ब्रान्डिङ',
       'Activity' => 'गतिविधि',
       'Security' => 'सुरक्षा',
@@ -74,6 +72,22 @@
     $searchDebounceMs = max(80, min((int) \App\Support\AppSettings::get('search.debounce_ms', '180'), 1500));
     $hotReloadEnabled = app()->environment('local') && (bool) config('haarray.ops.hot_reload', false);
     $notifyAutoPoll = (bool) config('haarray.realtime.auto_poll', false);
+    $openIpoCount = 0;
+    $unreadSuggestionCount = 0;
+    try {
+      if (auth()->check()) {
+        $openIpoCount = \App\Models\IPO::query()
+          ->whereIn('status', ['open', 'upcoming'])
+          ->count();
+        $unreadSuggestionCount = \App\Models\Suggestion::query()
+          ->where('user_id', auth()->id())
+          ->where('is_read', false)
+          ->count();
+      }
+    } catch (\Throwable) {
+      $openIpoCount = 0;
+      $unreadSuggestionCount = 0;
+    }
     $haarrayCssVersion = (int) (file_exists(public_path('css/haarray.app.css')) ? (filemtime(public_path('css/haarray.app.css')) ?: time()) : time());
     $haarrayJsVersion = (int) (file_exists(public_path('js/haarray.app.js')) ? (filemtime(public_path('js/haarray.app.js')) ?: time()) : time());
     $haarrayNepaliDateVersion = (int) (file_exists(public_path('js/haarray.nepali-date.js')) ? (filemtime(public_path('js/haarray.nepali-date.js')) ?: time()) : $haarrayJsVersion);
@@ -98,6 +112,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.6.0/fonts/remixicon.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css">
@@ -177,6 +192,14 @@
   </div>
 
   <div class="h-sidebar-nav" id="h-sidebar-nav">
+    @php
+      $portfolioTab = (string) request()->query('tab', 'portfolio-positions');
+      $ipoTabs = ['portfolio-positions', 'portfolio-master', 'portfolio-new-ipo', 'portfolio-new-master'];
+      $goldTabs = ['portfolio-gold', 'portfolio-new-gold'];
+      $ipoNavActive = request()->routeIs('portfolio.*') && in_array($portfolioTab, $ipoTabs, true);
+      $goldNavActive = request()->routeIs('portfolio.*') && in_array($portfolioTab, $goldTabs, true);
+      $portfolioMainActive = request()->routeIs('portfolio.*') && !$ipoNavActive && !$goldNavActive;
+    @endphp
     {{-- Nav --}}
     <div class="h-nav-sec">{{ $hlText('Finance', 'वित्त') }}</div>
     @can('view dashboard')
@@ -192,43 +215,45 @@
           {{ $hlText('Transactions', 'लेनदेन') }}
         </a>
       @endcan
-    @else
-      <a href="#" class="h-nav-item" onclick="HToast.info('Coming soon!');return false;">
-        <i class="h-nav-icon fa-solid fa-money-bill-transfer fa-fw"></i>
-        {{ $hlText('Transactions', 'लेनदेन') }}
-        <span class="h-nav-badge">Soon</span>
-      </a>
     @endif
-    <a href="#" class="h-nav-item" onclick="HToast.info('Coming soon!');return false;">
-      <i class="h-nav-icon fa-solid fa-building-columns fa-fw"></i>
-      {{ $hlText('Accounts', 'खाताहरू') }}
-    </a>
-    <a href="#" class="h-nav-item" onclick="HToast.info('Coming soon!');return false;">
-      <i class="h-nav-icon fa-solid fa-chart-line fa-fw"></i>
-      {{ $hlText('Portfolio', 'पोर्टफोलियो') }}
-    </a>
+    @can('view accounts')
+      <a data-spa href="{{ route('accounts.index') }}" class="h-nav-item {{ request()->routeIs('accounts.*') ? 'active' : '' }}">
+        <i class="h-nav-icon fa-solid fa-building-columns fa-fw"></i>
+        {{ $hlText('Accounts', 'खाताहरू') }}
+      </a>
+    @endcan
+    @can('view portfolio')
+      <a data-spa href="{{ route('portfolio.index') }}" class="h-nav-item {{ $portfolioMainActive ? 'active' : '' }}">
+        <i class="h-nav-icon fa-solid fa-chart-line fa-fw"></i>
+        {{ $hlText('Portfolio', 'पोर्टफोलियो') }}
+      </a>
+    @endcan
 
     <div class="h-nav-sec">{{ $hlText('Market', 'बजार') }}</div>
-    <a href="#" class="h-nav-item" onclick="HToast.info('Coming soon!');return false;">
-      <i class="h-nav-icon fa-solid fa-clock fa-fw"></i>
-      {{ $hlText('IPO Tracker', 'आईपीओ ट्र्याकर') }}
-      <span class="h-nav-badge teal">3</span>
-    </a>
-    <a href="#" class="h-nav-item" onclick="HToast.info('Coming soon!');return false;">
-      <i class="h-nav-icon fa-solid fa-coins fa-fw"></i>
-      {{ $hlText('Gold & Forex', 'सुन र फरेक्स') }}
-    </a>
+    @can('view portfolio')
+      <a data-spa href="{{ route('portfolio.index', ['tab' => 'portfolio-positions']) }}" class="h-nav-item {{ $ipoNavActive ? 'active' : '' }}">
+        <i class="h-nav-icon fa-solid fa-clock fa-fw"></i>
+        {{ $hlText('IPO Tracker', 'आईपीओ ट्र्याकर') }}
+        @if($openIpoCount > 0)
+          <span class="h-nav-badge teal">{{ $openIpoCount }}</span>
+        @endif
+      </a>
+      <a data-spa href="{{ route('portfolio.index', ['tab' => 'portfolio-gold']) }}" class="h-nav-item {{ $goldNavActive ? 'active' : '' }}">
+        <i class="h-nav-icon fa-solid fa-coins fa-fw"></i>
+        {{ $hlText('Gold & Forex', 'सुन र फरेक्स') }}
+      </a>
+    @endcan
 
     <div class="h-nav-sec">{{ $hlText('Intelligence', 'विश्लेषण') }}</div>
-    <a href="#" class="h-nav-item" onclick="HToast.info('Coming soon!');return false;">
-      <i class="h-nav-icon fa-solid fa-lightbulb fa-fw"></i>
-      {{ $hlText('Suggestions', 'सुझावहरू') }}
-      <span class="h-nav-badge">2</span>
-    </a>
-    <a href="#" class="h-nav-item" onclick="HToast.info('Coming soon!');return false;">
-      <i class="h-nav-icon fa-brands fa-telegram fa-fw"></i>
-      {{ $hlText('Telegram Bot', 'टेलिग्राम बट') }}
-    </a>
+    @can('view suggestions')
+      <a data-spa href="{{ route('suggestions.index') }}" class="h-nav-item {{ request()->routeIs('suggestions.*') ? 'active' : '' }}">
+        <i class="h-nav-icon fa-solid fa-lightbulb fa-fw"></i>
+        {{ $hlText('Suggestions', 'सुझावहरू') }}
+        @if($unreadSuggestionCount > 0)
+          <span class="h-nav-badge">{{ $unreadSuggestionCount }}</span>
+        @endif
+      </a>
+    @endcan
 
     <div class="h-nav-sec">{{ $hlText('System', 'सिस्टम') }}</div>
     @can('view docs')
@@ -239,7 +264,7 @@
     @endcan
     @if(auth()->user()->can('view settings'))
       @php
-        $settingsRouteActive = request()->routeIs('settings.index') || request()->routeIs('settings.users.*') || request()->routeIs('settings.media.*') || request()->routeIs('settings.rbac*') || request()->routeIs('settings.search.*');
+        $settingsRouteActive = request()->routeIs('settings.index') || request()->routeIs('settings.users.*') || request()->routeIs('settings.search.*');
       @endphp
       <div
         class="h-nav-group {{ $settingsRouteActive ? 'open' : '' }}"
@@ -345,11 +370,6 @@
       <button class="h-icon-btn" type="button" title="{{ $hlText('Search (⌘K / Ctrl+K)', 'खोज्नुहोस् (⌘K / Ctrl+K)') }}" data-global-search-open aria-label="{{ $hlText('Global Search', 'ग्लोबल खोज') }}">
         <i class="fa-solid fa-magnifying-glass"></i>
       </button>
-      @can('view settings')
-        <button class="h-icon-btn" type="button" title="{{ $hlText('Media Library', 'मिडिया लाइब्रेरी') }}" data-media-manager-open aria-label="{{ $hlText('Media Library', 'मिडिया लाइब्रेरी') }}">
-          <i class="fa-solid fa-photo-film"></i>
-        </button>
-      @endcan
       @if(config('haarray.enable_pwa'))
         <button class="h-icon-btn" type="button" id="h-pwa-install" title="{{ $hlText('Install app', 'एप इन्स्टल गर्नुहोस्') }}" style="display:none;">
           <i class="fa-solid fa-download"></i>
@@ -480,10 +500,6 @@
           <div class="col-md-6">
             <label class="h-label" style="display:block;">Email</label>
             <input type="email" name="email" class="form-control" value="{{ old('email', auth()->user()->email) }}" required>
-          </div>
-          <div class="col-md-6">
-            <label class="h-label" style="display:block;">Telegram Chat ID</label>
-            <input type="text" name="telegram_chat_id" class="form-control" value="{{ old('telegram_chat_id', auth()->user()->telegram_chat_id) }}" placeholder="optional">
           </div>
           <div class="col-md-6">
             <label class="h-label" style="display:block;">Browser Notifications</label>

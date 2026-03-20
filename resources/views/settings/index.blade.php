@@ -226,17 +226,13 @@
       <div class="h-card-soft mb-3">
         <div class="head">
           <div style="font-family:var(--fd);font-size:16px;font-weight:700;">Personal Security</div>
-          <div class="h-muted" style="font-size:13px;">2FA and your channel preferences.</div>
+          <div class="h-muted" style="font-size:13px;">2FA and browser/in-app notification preferences.</div>
         </div>
         <div class="body">
           <form method="POST" action="{{ route('settings.security') }}" data-spa>
             @csrf
             <div class="row g-3">
-              <div class="col-md-6">
-                <label class="h-label" style="display:block;">Telegram Chat ID</label>
-                <input type="text" name="telegram_chat_id" class="form-control" value="{{ old('telegram_chat_id', auth()->user()->telegram_chat_id) }}" placeholder="e.g. 123456789">
-              </div>
-              <div class="col-md-6" style="padding-top:24px;">
+              <div class="col-md-12" style="padding-top:8px;">
                 <div class="h-switch-wrap">
                   <label class="h-switch">
                     <input type="hidden" name="two_factor_enabled" value="0">
@@ -249,12 +245,6 @@
                     <input type="checkbox" name="receive_in_app_notifications" value="1" @checked(auth()->user()->receive_in_app_notifications)>
                     <span class="track"><span class="thumb"></span></span>
                     <span class="h-switch-text">In-App Notifications</span>
-                  </label>
-                  <label class="h-switch">
-                    <input type="hidden" name="receive_telegram_notifications" value="0">
-                    <input type="checkbox" name="receive_telegram_notifications" value="1" @checked(auth()->user()->receive_telegram_notifications)>
-                    <span class="track"><span class="thumb"></span></span>
-                    <span class="h-switch-text">Telegram Notifications</span>
                   </label>
                   <label class="h-switch">
                     <input type="hidden" name="browser_notifications_enabled" value="0">
@@ -280,7 +270,7 @@
       <div class="h-card-soft mb-3">
         <div class="head">
           <div style="font-family:var(--fd);font-size:16px;font-weight:700;">Broadcast Notifications</div>
-          <div class="h-muted" style="font-size:13px;">Send in-app + Telegram messages by audience from UI.</div>
+          <div class="h-muted" style="font-size:13px;">Send in-app messages by audience from UI.</div>
         </div>
         <div class="body">
           @can('manage notifications')
@@ -319,10 +309,6 @@
                     <label class="form-check">
                       <input class="form-check-input" type="checkbox" name="channels[]" value="in_app" checked>
                       <span class="form-check-label">In-app</span>
-                    </label>
-                    <label class="form-check">
-                      <input class="form-check-input" type="checkbox" name="channels[]" value="telegram">
-                      <span class="form-check-label">Telegram</span>
                     </label>
                   </div>
                 </div>
@@ -365,7 +351,7 @@ app(\App\Support\Notifier::class)->toUser(
     $user,
     'Invoice Created',
     "Invoice {$invoice->number} created.",
-    ['level' => 'success', 'channels' => ['in_app', 'telegram'], 'url' => route('invoices.show', $invoice)]
+    ['level' => 'success', 'channels' => ['in_app'], 'url' => route('invoices.show', $invoice)]
 );
 
 // Send to role

@@ -60,7 +60,15 @@
         </div>
       @else
         <div class="table-responsive">
-          <table class="table table-sm align-middle h-table-sticky-actions">
+          <table
+            class="table table-sm align-middle h-table-sticky-actions"
+            data-h-datatable
+            data-page-length="10"
+            data-length-menu="10,20,50,100"
+            data-order-col="0"
+            data-order-dir="asc"
+            data-empty-text="No search sources found"
+          >
             <thead>
               <tr>
                 <th>Key</th>

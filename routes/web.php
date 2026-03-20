@@ -125,6 +125,10 @@ Route::middleware('auth')->group(function () {
         ->middleware('permission:view suggestions')
         ->name('suggestions.refresh');
 
+    Route::post('/suggestions/chat', [SuggestionController::class, 'chat'])
+        ->middleware('permission:view suggestions')
+        ->name('suggestions.chat');
+
     Route::post('/suggestions/{suggestion}/read', [SuggestionController::class, 'markRead'])
         ->middleware('permission:view suggestions')
         ->name('suggestions.read');
@@ -331,6 +335,26 @@ Route::middleware('auth')->group(function () {
     Route::get('/ui/datatables/roles', [UiOptionsController::class, 'rolesTable'])
         ->middleware('permission:manage settings')
         ->name('ui.datatables.roles');
+
+    Route::get('/ui/datatables/accounts', [UiOptionsController::class, 'accountsTable'])
+        ->middleware('permission:view accounts')
+        ->name('ui.datatables.accounts');
+
+    Route::get('/ui/datatables/transactions', [UiOptionsController::class, 'transactionsTable'])
+        ->middleware('permission:view transactions')
+        ->name('ui.datatables.transactions');
+
+    Route::get('/ui/datatables/portfolio/ipos', [UiOptionsController::class, 'ipoMasterTable'])
+        ->middleware('permission:view portfolio')
+        ->name('ui.datatables.portfolio.ipos');
+
+    Route::get('/ui/datatables/portfolio/positions', [UiOptionsController::class, 'ipoPositionsTable'])
+        ->middleware('permission:view portfolio')
+        ->name('ui.datatables.portfolio.positions');
+
+    Route::get('/ui/datatables/portfolio/gold', [UiOptionsController::class, 'goldPositionsTable'])
+        ->middleware('permission:view portfolio')
+        ->name('ui.datatables.portfolio.gold');
 
     Route::get('/notifications/feed', [NotificationController::class, 'feed'])
         ->middleware('permission:view notifications')
